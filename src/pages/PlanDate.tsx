@@ -16,12 +16,26 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
-const suggestions = [
-  "Romantic Italian in Brooklyn",
-  "Fun date under $100",
-  "Something adventurous tonight",
-  "Impress a foodie",
-];
+// Dynamic suggestions based on location
+const getSuggestions = (location: string) => {
+  const locationName = location?.split(',')[0]?.trim() || 'nearby';
+  
+  const templates = [
+    // Cuisine-based
+    [`Romantic Italian in ${locationName}`, `Cozy sushi spot in ${locationName}`, `Best tacos near ${locationName}`, `French bistro in ${locationName}`],
+    // Vibe-based
+    [`Fun casual date`, `Upscale dinner experience`, `Something adventurous tonight`, `Chill wine bar vibes`],
+    // Budget-based
+    [`Great date under $50`, `Fancy dinner under $150`, `Budget-friendly but impressive`, `Splurge-worthy spot`],
+    // Activity-based
+    [`Dinner and live music`, `Food and comedy show`, `Drinks with a view`, `Late night bites`],
+  ];
+  
+  // Pick one random item from each category
+  return templates.map(category => 
+    category[Math.floor(Math.random() * category.length)]
+  );
+};
 
 type ViewMode = "quick" | "conversation";
 
@@ -31,8 +45,12 @@ export default function PlanDate() {
   const [viewMode, setViewMode] = useState<ViewMode>("quick");
   const [userLocation, setUserLocation] = useState(profile?.location || "");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [suggestions, setSuggestions] = useState<string[]>([]);
 
-  // Sync location with profile
+  // Generate random suggestions when location changes
+  useEffect(() => {
+    setSuggestions(getSuggestions(userLocation));
+  }, [userLocation]);
   useEffect(() => {
     if (userLocation && userLocation !== profile?.location) {
       setProfile({ location: userLocation });
