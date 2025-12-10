@@ -3,6 +3,9 @@ project_id = "muksyipqfiyjlffhuaqe"
 [functions.yelp-chat]
 verify_jwt = true
 
+[functions.elevenlabs-tts]
+verify_jwt = true
+
 [api]
 enabled = true
 port = 54321

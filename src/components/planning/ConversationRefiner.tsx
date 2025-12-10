@@ -1,12 +1,13 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Loader2, Sparkles, Mic, MicOff, ChevronUp, ChevronDown, MessageSquare } from "lucide-react";
+import { Send, Loader2, Sparkles, Mic, MicOff, ChevronUp, ChevronDown, MessageSquare, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/stores/appStore";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { textToSpeech } from "@/lib/api";
 
 const SUGGESTION_CHIPS = [
   "Something more casual",
@@ -26,7 +27,11 @@ export default function ConversationRefiner() {
   
   const [input, setInput] = useState("");
   const [isExpanded, setIsExpanded] = useState(true);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastSpokenResponse = useRef<string | null>(null);
 
   const {
     isListening,
@@ -44,6 +49,78 @@ export default function ConversationRefiner() {
       toast.error(`Voice recognition error: ${error}`);
     },
   });
+
+  // Play TTS for AI response
+  const speakResponse = useCallback(async (text: string) => {
+    if (!text || !voiceEnabled) return;
+    
+    // Stop any currently playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    
+    setIsSpeaking(true);
+    
+    try {
+      const audioBase64 = await textToSpeech(text);
+      if (audioBase64) {
+        const audioBlob = new Blob(
+          [Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0))],
+          { type: 'audio/mpeg' }
+        );
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+        
+        audio.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+          audioRef.current = null;
+        };
+        
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+          audioRef.current = null;
+        };
+        
+        await audio.play();
+      } else {
+        setIsSpeaking(false);
+      }
+    } catch (error) {
+      console.error('TTS playback error:', error);
+      setIsSpeaking(false);
+    }
+  }, [voiceEnabled]);
+
+  // Auto-speak when aiResponse changes
+  useEffect(() => {
+    if (aiResponse && voiceEnabled && aiResponse !== lastSpokenResponse.current) {
+      lastSpokenResponse.current = aiResponse;
+      speakResponse(aiResponse);
+    }
+  }, [aiResponse, voiceEnabled, speakResponse]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const toggleVoice = () => {
+    if (isSpeaking && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+      setIsSpeaking(false);
+    }
+    setVoiceEnabled(!voiceEnabled);
+  };
 
   const handleSubmitMessage = async (message: string) => {
     if (!message.trim() || isRefining) return;
@@ -76,20 +153,44 @@ export default function ConversationRefiner() {
     <div className="bg-gradient-to-b from-card/95 to-card/80 backdrop-blur-sm border-b border-border shadow-lg">
       <div className="px-6 py-4">
         {/* Header */}
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center justify-between mb-2"
-        >
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between mb-2">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-2"
+          >
             <Sparkles className="w-4 h-4 text-primary" />
             <span className="text-sm font-semibold">Refine Your Search with Yelp AI</span>
-          </div>
-          {isExpanded ? (
-            <ChevronUp className="w-5 h-5 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-muted-foreground" />
-          )}
-        </button>
+            {isExpanded ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
+          
+          {/* Voice Toggle */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={toggleVoice}
+            className={cn(
+              "h-8 px-2 gap-1.5",
+              isSpeaking && "text-primary"
+            )}
+          >
+            {voiceEnabled ? (
+              <>
+                <Volume2 className={cn("w-4 h-4", isSpeaking && "animate-pulse")} />
+                <span className="text-xs">{isSpeaking ? "Speaking..." : "Voice On"}</span>
+              </>
+            ) : (
+              <>
+                <VolumeX className="w-4 h-4" />
+                <span className="text-xs">Voice Off</span>
+              </>
+            )}
+          </Button>
+        </div>
 
         {/* AI Response Display */}
         <AnimatePresence>
@@ -98,13 +199,23 @@ export default function ConversationRefiner() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="mb-3 p-3 rounded-lg bg-primary/5 border border-primary/20"
+              className={cn(
+                "mb-3 p-3 rounded-lg bg-primary/5 border border-primary/20",
+                isSpeaking && "ring-2 ring-primary/30"
+              )}
             >
               <div className="flex gap-2">
                 <MessageSquare className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <p className="text-sm text-foreground/90 leading-relaxed">
+                <p className="text-sm text-foreground/90 leading-relaxed flex-1">
                   {aiResponse}
                 </p>
+                {isSpeaking && (
+                  <div className="flex gap-0.5 items-center shrink-0">
+                    <span className="w-1 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1 h-4 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
