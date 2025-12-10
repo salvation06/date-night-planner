@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, MapPin, Clock, ChevronLeft, Heart, Check, Loader2, CalendarCheck } from "lucide-react";
+import { Star, MapPin, Clock, ChevronLeft, Heart, Check, Loader2, CalendarCheck, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppStore } from "@/stores/appStore";
@@ -23,15 +23,9 @@ export default function RestaurantSuggestions() {
   const handleReserve = async (restaurant: Restaurant, time: string) => {
     setIsBooking(true);
     
-    // Mock the Yelp Reservations API call
-    // Real API: POST https://api.yelp.com/v3/transactions/{transaction_type}/push
-    // See: https://docs.developer.yelp.com/reference/v3_reservations
-    
     try {
-      // Simulate API delay
       await new Promise((resolve) => setTimeout(resolve, 1500));
       
-      // Mock reservation response
       const confirmationNumber = `YLP-${Date.now().toString(36).toUpperCase()}`;
       
       setReservation({
@@ -51,7 +45,6 @@ export default function RestaurantSuggestions() {
         </div>
       );
       
-      // Proceed to activities after short delay
       setTimeout(() => {
         selectRestaurant(restaurant, time);
       }, 1000);
@@ -84,20 +77,22 @@ export default function RestaurantSuggestions() {
         </div>
       </div>
 
-      {/* Restaurant Cards */}
-      <div className="px-6 py-6 space-y-6">
-        {restaurants.map((restaurant, i) => (
-          <RestaurantCard
-            key={restaurant.id}
-            restaurant={restaurant}
-            index={i}
-            isBooking={isBooking && reservation?.restaurantId === restaurant.id}
-            isReserved={reservation?.restaurantId === restaurant.id && reservation?.status === "confirmed"}
-            reservedTime={reservation?.restaurantId === restaurant.id ? reservation?.time : undefined}
-            confirmationNumber={reservation?.restaurantId === restaurant.id ? reservation?.confirmationNumber : undefined}
-            onReserve={(time) => handleReserve(restaurant, time)}
-          />
-        ))}
+      {/* Restaurant Cards - Grid Layout */}
+      <div className="px-6 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {restaurants.map((restaurant, i) => (
+            <RestaurantCard
+              key={restaurant.id}
+              restaurant={restaurant}
+              index={i}
+              isBooking={isBooking && reservation?.restaurantId === restaurant.id}
+              isReserved={reservation?.restaurantId === restaurant.id && reservation?.status === "confirmed"}
+              reservedTime={reservation?.restaurantId === restaurant.id ? reservation?.time : undefined}
+              confirmationNumber={reservation?.restaurantId === restaurant.id ? reservation?.confirmationNumber : undefined}
+              onReserve={(time) => handleReserve(restaurant, time)}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Reservation Info Banner */}
@@ -144,64 +139,100 @@ function RestaurantCard({
 }: RestaurantCardProps) {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
+  // Build Yelp URL from yelp_id
+  const yelpUrl = restaurant.yelpId 
+    ? `https://www.yelp.com/biz/${restaurant.yelpId}`
+    : null;
+
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ delay: index * 0.1 }}
+      className="h-full"
+    >
       <Card
         variant={isReserved ? "romantic" : "elevated"}
         className={cn(
-          "overflow-hidden transition-all duration-300",
+          "h-full flex flex-col overflow-hidden transition-all duration-300",
           isReserved && "ring-2 ring-green-500"
         )}
       >
-        <div className="relative h-48 overflow-hidden">
-          <img src={restaurant.photoUrl} alt={restaurant.name} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-          
-          {isReserved && (
-            <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500 text-white text-sm font-medium">
-              <Check className="w-4 h-4" />
-              Reserved
+        <CardContent className="p-5 flex flex-col flex-1">
+          {/* Header with Name & Rating */}
+          <div className="mb-4">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <h3 className="font-display text-lg font-semibold leading-tight">{restaurant.name}</h3>
+              {isReserved && (
+                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-500 text-white text-xs font-medium shrink-0">
+                  <Check className="w-3 h-3" />
+                  Reserved
+                </span>
+              )}
             </div>
-          )}
-          
-          <div className="absolute bottom-4 left-4 right-4">
-            <h3 className="font-display text-xl font-semibold text-white mb-1">{restaurant.name}</h3>
-            <div className="flex items-center gap-3 text-white/90 text-sm">
-              <span className="flex items-center gap-1">
+            
+            {/* Rating, Price, Cuisine */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+              <span className="flex items-center gap-1 text-foreground font-medium">
                 <Star className="w-4 h-4 fill-gold text-gold" />
                 {restaurant.rating}
               </span>
-              <span>·</span>
-              <span>{restaurant.price}</span>
-              <span>·</span>
-              <span>{restaurant.cuisine}</span>
+              {restaurant.price && (
+                <>
+                  <span>·</span>
+                  <span className="text-primary font-medium">{restaurant.price}</span>
+                </>
+              )}
+              {restaurant.cuisine && (
+                <>
+                  <span>·</span>
+                  <span>{restaurant.cuisine}</span>
+                </>
+              )}
             </div>
           </div>
-        </div>
 
-        <CardContent className="p-4">
           {/* Tags */}
-          <div className="flex flex-wrap gap-2 mb-3">
-            {restaurant.tags.map((tag) => (
-              <span key={tag} className="px-2.5 py-1 text-xs font-medium rounded-full bg-secondary text-secondary-foreground">
-                {tag}
-              </span>
-            ))}
-          </div>
+          {restaurant.tags && restaurant.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {restaurant.tags.slice(0, 4).map((tag) => (
+                <span key={tag} className="px-2 py-0.5 text-xs font-medium rounded-full bg-secondary text-secondary-foreground">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
           
           {/* Description */}
-          <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{restaurant.whyThisWorks}</p>
+          <p className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-3 flex-1">
+            {restaurant.whyThisWorks}
+          </p>
           
           {/* Address */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-            <MapPin className="w-4 h-4" />
-            <span>{restaurant.address}</span>
-            {restaurant.distance && (<><span>·</span><span>{restaurant.distance}</span></>)}
+          <div className="flex items-start gap-2 text-sm text-muted-foreground mb-4">
+            <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
+            <span className="line-clamp-2">
+              {restaurant.address}
+              {restaurant.distance && <span className="ml-1">· {restaurant.distance}</span>}
+            </span>
           </div>
+
+          {/* View on Yelp Button */}
+          {yelpUrl && (
+            <a
+              href={yelpUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 mb-4 rounded-lg bg-[#FF1A1A] hover:bg-[#E60000] text-white font-medium text-sm transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+              View on Yelp
+            </a>
+          )}
 
           {/* Reserved State */}
           {isReserved ? (
-            <div className="pt-4 border-t border-border">
+            <div className="pt-4 border-t border-border mt-auto">
               <div className="flex items-center justify-between p-3 rounded-xl bg-green-500/10 border border-green-500/20">
                 <div>
                   <p className="font-medium text-green-700">Reservation Confirmed</p>
@@ -217,19 +248,19 @@ function RestaurantCard({
             </div>
           ) : (
             /* Time Selection & Reserve */
-            <div className="pt-4 border-t border-border">
+            <div className="pt-4 border-t border-border mt-auto">
               <div className="flex items-center gap-2 mb-3">
                 <Clock className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium">Select a Time</span>
               </div>
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex flex-wrap gap-1.5 mb-4">
                 {restaurant.availableTimes.map((time) => (
                   <button
                     key={time}
                     onClick={() => setSelectedTime(time)}
                     disabled={isBooking}
                     className={cn(
-                      "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                      "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
                       selectedTime === time 
                         ? "bg-primary text-primary-foreground shadow-soft" 
                         : "bg-secondary hover:bg-secondary/80 text-secondary-foreground",
@@ -256,7 +287,7 @@ function RestaurantCard({
                 ) : (
                   <>
                     <Heart className="w-4 h-4 mr-2" />
-                    {selectedTime ? `Reserve for ${selectedTime}` : "Select a time to reserve"}
+                    {selectedTime ? `Reserve for ${selectedTime}` : "Select a time"}
                   </>
                 )}
               </Button>
