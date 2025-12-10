@@ -117,13 +117,22 @@ serve(async (req) => {
     } else {
       console.error('Yelp AI error, falling back to search:', await yelpResponse.text());
       
+      // Add randomization to get different results each time
+      const sortOptions = ['rating', 'review_count', 'best_match'];
+      const randomSort = sortOptions[Math.floor(Math.random() * sortOptions.length)];
+      const randomOffset = Math.floor(Math.random() * 20); // Random offset 0-19
+      
       const searchParams = new URLSearchParams({
-        term: `romantic restaurant ${prompt}`,
+        term: prompt || 'romantic restaurant',
         location: userLocation,
-        limit: '5',
-        sort_by: 'rating',
+        limit: '10',
+        offset: randomOffset.toString(),
+        sort_by: randomSort,
         categories: 'restaurants',
+        price: priceFilter.toString(),
       });
+      
+      console.log('Fallback search params:', { term: prompt, location: userLocation, sort: randomSort, offset: randomOffset });
       
       const searchResponse = await fetch(`https://api.yelp.com/v3/businesses/search?${searchParams}`, {
         headers: {
@@ -134,7 +143,9 @@ serve(async (req) => {
       
       if (searchResponse.ok) {
         const searchData = await searchResponse.json();
-        restaurants = searchData.businesses?.map((biz: any) => ({
+        // Shuffle the results for additional randomization
+        const shuffled = (searchData.businesses || []).sort(() => Math.random() - 0.5);
+        restaurants = shuffled.slice(0, 5).map((biz: any) => ({
           yelp_id: biz.id,
           name: biz.name,
           photo_url: biz.image_url,
@@ -148,7 +159,9 @@ serve(async (req) => {
           distance: biz.distance ? `${(biz.distance / 1609.34).toFixed(1)} mi` : null,
           latitude: biz.coordinates?.latitude,
           longitude: biz.coordinates?.longitude,
-        })) || [];
+        }));
+      } else {
+        console.error('Yelp search error:', await searchResponse.text());
       }
     }
 
