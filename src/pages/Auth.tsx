@@ -549,6 +549,40 @@ export default function Auth() {
                 Continue with Google
               </Button>
 
+              {/* Demo Login Section */}
+              <div className="mt-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">Demo Account</span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Use these credentials to test the app:
+                </p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
+                    <span className="text-muted-foreground">Email:</span>
+                    <code className="text-foreground font-mono">demo@impressmydate.com</code>
+                  </div>
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-background/50">
+                    <span className="text-muted-foreground">Password:</span>
+                    <code className="text-foreground font-mono">demo123</code>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="soft"
+                  size="sm"
+                  className="w-full mt-3"
+                  onClick={() => {
+                    setEmail('demo@impressmydate.com');
+                    setPassword('demo123');
+                    setIsLogin(true);
+                  }}
+                >
+                  Fill Demo Credentials
+                </Button>
+              </div>
+
               <div className="mt-6 text-center">
                 <AnimatePresence mode="wait">
                   <motion.p
