@@ -140,7 +140,7 @@ export const useAppStore = create<AppState>()(
           });
 
           const restaurants: Restaurant[] = (result.restaurants || []).map((r: any) => ({
-            id: r.id,
+            id: r.id || r.yelp_id,
             yelpId: r.yelp_id,
             name: r.name,
             photoUrl: r.photo_url || "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800",
