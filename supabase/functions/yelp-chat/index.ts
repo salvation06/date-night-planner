@@ -48,26 +48,28 @@ serve(async (req) => {
 
     const userLocation = location || profile?.location || 'New York, NY';
 
-    // Build the Yelp AI Chat request with conversation support
-    const yelpChatRequest: any = {
-      chat_request: {
-        chat: {
-          user_message: message,
-        },
-        search_context: {
-          location: userLocation,
-        }
+    // Build the Yelp AI API v2 request structure
+    // https://api.yelp.com/ai/chat/v2
+    const yelpChatRequest: {
+      query: string;
+      chat_id?: string;
+      user_context?: { latitude?: number; longitude?: number };
+      request_context?: { return_businesses?: boolean };
+    } = {
+      query: message,
+      request_context: {
+        return_businesses: true,
       }
     };
 
-    // Include conversation_id for multi-turn conversations
+    // Include chat_id for multi-turn conversations (use conversation_id from previous response)
     if (conversation_id) {
-      yelpChatRequest.chat_request.chat.conversation_id = conversation_id;
+      yelpChatRequest.chat_id = conversation_id;
     }
 
-    console.log('Yelp AI Chat request:', JSON.stringify(yelpChatRequest));
+    console.log('Yelp AI v2 Chat request:', JSON.stringify(yelpChatRequest));
 
-    const yelpResponse = await fetch('https://api.yelp.com/v3/ai/chat', {
+    const yelpResponse = await fetch('https://api.yelp.com/ai/chat/v2', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${YELP_API_KEY}`,
@@ -79,7 +81,7 @@ serve(async (req) => {
 
     if (!yelpResponse.ok) {
       const errorText = await yelpResponse.text();
-      console.error('Yelp AI error:', errorText);
+      console.error('Yelp AI v2 error:', errorText);
       return new Response(JSON.stringify({ 
         error: 'Yelp API error',
         details: errorText 
@@ -90,12 +92,12 @@ serve(async (req) => {
     }
 
     const yelpData = await yelpResponse.json();
-    console.log('Yelp AI response:', JSON.stringify(yelpData).substring(0, 2000));
+    console.log('Yelp AI v2 response:', JSON.stringify(yelpData).substring(0, 2000));
 
-    // Extract response data
-    const aiResponse = yelpData.response?.ai_response || yelpData.response?.text || '';
-    const newConversationId = yelpData.response?.conversation_id || conversation_id;
-    const businesses = yelpData.response?.businesses || [];
+    // Extract response data from v2 API structure
+    const aiResponse = yelpData.message || yelpData.response?.text || '';
+    const newChatId = yelpData.chat_id || conversation_id;
+    const businesses = yelpData.businesses || yelpData.response?.businesses || [];
 
     // Map businesses to our restaurant format
     const restaurants = businesses.map((biz: any) => ({
@@ -132,9 +134,9 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       ai_response: aiResponse,
-      conversation_id: newConversationId,
+      conversation_id: newChatId, // Return chat_id as conversation_id for frontend compatibility
       restaurants,
-      raw_response: yelpData.response,
+      raw_response: yelpData,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

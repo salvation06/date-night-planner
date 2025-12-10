@@ -66,22 +66,24 @@ serve(async (req) => {
     const priceMap: Record<string, number> = { '$': 1, '$$': 2, '$$$': 3, '$$$$': 4 };
     const priceFilter = priceMap[userBudget] || 2;
 
-    const yelpChatRequest = {
-      chat_request: {
-        chat: {
-          user_message: `Find romantic restaurants for a date ${prompt}. Budget: ${userBudget}. Location: ${userLocation}. Looking for dinner options with great ambiance.`,
-        },
-        search_context: {
-          location: userLocation,
-          price: priceFilter,
-          open_now: false,
-        }
+    // Build the correct Yelp AI API v2 request structure
+    // https://api.yelp.com/ai/chat/v2
+    const yelpChatRequest: {
+      query: string;
+      chat_id?: string;
+      user_context?: { latitude?: number; longitude?: number };
+      request_context?: { return_businesses?: boolean };
+    } = {
+      query: `Find romantic restaurants for a date: ${prompt}. Budget: ${userBudget}. Location: ${userLocation}. Looking for dinner options with great ambiance.`,
+      // chat_id is omitted for first request, API will return one for follow-ups
+      request_context: {
+        return_businesses: true,
       }
     };
 
-    console.log('Yelp AI Chat request:', yelpChatRequest);
+    console.log('Yelp AI v2 Chat request:', yelpChatRequest);
 
-    const yelpResponse = await fetch('https://api.yelp.com/v3/ai/chat', {
+    const yelpResponse = await fetch('https://api.yelp.com/ai/chat/v2', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${YELP_API_KEY}`,
@@ -95,10 +97,18 @@ serve(async (req) => {
     
     if (yelpResponse.ok) {
       const yelpData = await yelpResponse.json();
-      console.log('Yelp AI response:', JSON.stringify(yelpData).substring(0, 1000));
+      console.log('Yelp AI v2 response:', JSON.stringify(yelpData).substring(0, 2000));
       
-      if (yelpData.response?.businesses) {
-        restaurants = yelpData.response.businesses.map((biz: any) => ({
+      // Store chat_id for potential follow-up conversations
+      const chatId = yelpData.chat_id;
+      console.log('Yelp chat_id for follow-ups:', chatId);
+      
+      // v2 API returns businesses directly or in response.businesses
+      const businesses = yelpData.businesses || yelpData.response?.businesses || [];
+      const aiMessage = yelpData.message || yelpData.response?.text || '';
+      
+      if (businesses.length > 0) {
+        restaurants = businesses.map((biz: any) => ({
           yelp_id: biz.id,
           name: biz.name,
           photo_url: biz.image_url || biz.photos?.[0],
@@ -106,7 +116,7 @@ serve(async (req) => {
           price: biz.price,
           cuisine: biz.categories?.[0]?.title || 'Restaurant',
           tags: biz.categories?.map((c: any) => c.title) || [],
-          why_this_works: yelpData.response?.ai_response || `Great for a romantic date with ${biz.rating} stars`,
+          why_this_works: aiMessage || `Great for a romantic date with ${biz.rating} stars`,
           available_times: ['6:00 PM', '6:30 PM', '7:00 PM', '7:30 PM', '8:00 PM', '8:30 PM'],
           address: biz.location?.display_address?.join(', ') || biz.location?.address1,
           distance: biz.distance ? `${(biz.distance / 1609.34).toFixed(1)} mi` : null,
