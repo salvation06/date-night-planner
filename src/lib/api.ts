@@ -136,3 +136,14 @@ export async function getItineraries() {
 export async function submitFeedback(itineraryId: string, rating: string, comment?: string) {
   return callEdgeFunction('submit-feedback', { itinerary_id: itineraryId, rating, comment });
 }
+
+// ElevenLabs Text-to-Speech API
+export async function textToSpeech(text: string, voiceId?: string): Promise<string | null> {
+  try {
+    const result = await callEdgeFunction('elevenlabs-tts', { text, voiceId }, false, 30000);
+    return result.audioContent || null;
+  } catch (error) {
+    console.error('Text-to-speech error:', error);
+    return null;
+  }
+}
