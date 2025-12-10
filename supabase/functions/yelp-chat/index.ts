@@ -6,33 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const YELP_CLIENT_ID = Deno.env.get('YELP_CLIENT_ID');
-const YELP_CLIENT_SECRET = Deno.env.get('YELP_CLIENT_SECRET');
-
-// Get OAuth2 access token from Yelp
-async function getYelpAccessToken(): Promise<string> {
-  const tokenResponse = await fetch('https://api.yelp.com/oauth2/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: YELP_CLIENT_ID!,
-      client_secret: YELP_CLIENT_SECRET!,
-    }),
-  });
-
-  if (!tokenResponse.ok) {
-    const errorText = await tokenResponse.text();
-    console.error('Yelp OAuth2 token error:', errorText);
-    throw new Error(`Failed to get Yelp access token: ${errorText}`);
-  }
-
-  const tokenData = await tokenResponse.json();
-  console.log('Yelp OAuth2 token obtained successfully');
-  return tokenData.access_token;
-}
+// Use the API key directly for Yelp Conversational AI
+const YELP_API_KEY = Deno.env.get('YELP_API_KEY');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -40,6 +15,10 @@ serve(async (req) => {
   }
 
   try {
+    if (!YELP_API_KEY) {
+      throw new Error('YELP_API_KEY is not configured');
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -74,9 +53,6 @@ serve(async (req) => {
 
     const userLocation = location || profile?.location || 'New York, NY';
 
-    // Get OAuth2 access token
-    const accessToken = await getYelpAccessToken();
-
     // Build the Yelp AI API v2 request structure
     const yelpChatRequest: {
       query: string;
@@ -100,7 +76,7 @@ serve(async (req) => {
     const yelpResponse = await fetch('https://api.yelp.com/ai/chat/v2', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        'Authorization': `Bearer ${YELP_API_KEY}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
