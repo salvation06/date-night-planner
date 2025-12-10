@@ -40,13 +40,17 @@ function transformToRestaurant(biz: any) {
 }
 
 serve(async (req) => {
+  console.log('[yelp-chat] Request received:', req.method);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
     if (!YELP_API_TOKEN) {
-      console.error('YELP_CLIENT_SECRET is not configured');
+      console.error('[yelp-chat] YELP_CLIENT_SECRET is not configured');
       throw new Error('YELP_CLIENT_SECRET is not configured');
     }
 
@@ -57,6 +61,7 @@ serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.log('[yelp-chat] No auth header');
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -67,15 +72,18 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
+      console.log('[yelp-chat] Auth failed:', authError?.message);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    console.log('[yelp-chat] Auth took:', Date.now() - startTime, 'ms');
+
     // Extract request data
     const { message, conversation_id, session_id, location } = await req.json();
-    console.log('Yelp chat request:', { message, conversation_id, session_id, userId: user.id, location });
+    console.log('[yelp-chat] Request:', { message, conversation_id, location });
 
     // Get user profile for location context
     const { data: profile } = await supabase
@@ -86,24 +94,31 @@ serve(async (req) => {
 
     const userLocation = location || profile?.location || 'New York, NY';
 
+    // Build a more specific query for better results
+    const searchQuery = `Find restaurants: ${message}. Must be in or near ${userLocation}. Show different options than before.`;
+    
     // Build the Yelp AI API v2 request
     const yelpChatRequest: Record<string, any> = {
-      query: `${message}. Location: ${userLocation}`,
+      query: searchQuery,
       request_context: {
         return_businesses: true,
       }
     };
 
-    // Include chat_id for multi-turn conversations
+    // Include chat_id for multi-turn conversations to get different results
     if (conversation_id) {
       yelpChatRequest.chat_id = conversation_id;
     }
 
-    console.log('Yelp AI v2 Chat request:', JSON.stringify(yelpChatRequest));
+    console.log('[yelp-chat] Calling Yelp AI...');
+    const yelpStartTime = Date.now();
 
-    // Add timeout to prevent hanging
+    // Use a shorter timeout (20 seconds) for the Yelp API
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+    const timeoutId = setTimeout(() => {
+      console.log('[yelp-chat] Yelp API timeout triggered');
+      controller.abort();
+    }, 20000);
 
     let yelpResponse;
     try {
@@ -118,13 +133,16 @@ serve(async (req) => {
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
+      console.log('[yelp-chat] Yelp API responded in:', Date.now() - yelpStartTime, 'ms, status:', yelpResponse.status);
     } catch (fetchError) {
       clearTimeout(timeoutId);
-      console.error('Yelp API fetch error:', fetchError);
+      const errorMsg = fetchError instanceof Error ? fetchError.message : 'Unknown error';
+      console.error('[yelp-chat] Yelp API fetch error:', errorMsg);
       return new Response(JSON.stringify({ 
-        error: 'Yelp API request failed or timed out',
-        ai_response: "I couldn't reach Yelp right now. Please try again.",
-        restaurants: []
+        error: 'Yelp API request failed',
+        ai_response: `I couldn't reach Yelp right now (${errorMsg}). Please try again.`,
+        restaurants: [],
+        conversation_id: conversation_id || '',
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -133,33 +151,48 @@ serve(async (req) => {
 
     if (!yelpResponse.ok) {
       const errorText = await yelpResponse.text();
-      console.error('Yelp AI v2 error:', errorText);
+      console.error('[yelp-chat] Yelp AI error:', yelpResponse.status, errorText);
       return new Response(JSON.stringify({ 
         error: 'Yelp API error',
+        ai_response: 'Yelp returned an error. Please try a different search.',
         details: errorText,
-        restaurants: [] // Return empty array so UI doesn't break
+        restaurants: [],
+        conversation_id: conversation_id || '',
       }), {
-        status: 200, // Return 200 so client doesn't fail
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const yelpData = await yelpResponse.json();
-    console.log('Yelp AI v2 response:', JSON.stringify(yelpData).substring(0, 2000));
+    console.log('[yelp-chat] Yelp response keys:', Object.keys(yelpData));
 
     // Extract response data from v2 API structure
-    const aiResponse = yelpData.message || yelpData.response?.text || '';
-    const newChatId = yelpData.chat_id || conversation_id || '';
+    const aiResponse = yelpData.message || yelpData.response?.text || 'Here are some options based on your request:';
+    const newChatId = yelpData.chat_id || conversation_id || crypto.randomUUID();
     
-    // Extract businesses from various possible locations
-    const businesses = yelpData.entities?.[0]?.businesses || yelpData.businesses || yelpData.response?.businesses || [];
-    console.log('Found businesses:', businesses.length);
+    // Extract businesses from various possible locations in the response
+    let businesses = yelpData.entities?.[0]?.businesses || yelpData.businesses || yelpData.response?.businesses || [];
+    console.log('[yelp-chat] Found', businesses.length, 'businesses');
+
+    // If no businesses found, log the full response for debugging
+    if (businesses.length === 0) {
+      console.log('[yelp-chat] No businesses found. Full response:', JSON.stringify(yelpData).substring(0, 1000));
+    }
 
     // Map businesses to our restaurant format
     const restaurants = businesses.map(transformToRestaurant);
 
-    // Save to database if session provided
+    // Save to database if session provided and we have restaurants
     if (session_id && restaurants.length > 0) {
+      console.log('[yelp-chat] Saving', restaurants.length, 'restaurants to session', session_id);
+      
+      // Delete old options first to avoid duplicates
+      await supabase
+        .from('restaurant_options')
+        .delete()
+        .eq('session_id', session_id);
+      
       const { error: insertError } = await supabase
         .from('restaurant_options')
         .insert(restaurants.map((r: any) => ({
@@ -168,9 +201,11 @@ serve(async (req) => {
         })));
       
       if (insertError) {
-        console.error('Restaurant insert error:', insertError);
+        console.error('[yelp-chat] Restaurant insert error:', insertError);
       }
     }
+
+    console.log('[yelp-chat] Total time:', Date.now() - startTime, 'ms');
 
     return new Response(JSON.stringify({
       ai_response: aiResponse,
@@ -180,13 +215,15 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Yelp chat error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[yelp-chat] Error:', errorMessage);
     return new Response(JSON.stringify({ 
       error: errorMessage,
-      restaurants: [] // Return empty so UI doesn't break
+      ai_response: 'Something went wrong. Please try again.',
+      restaurants: [],
+      conversation_id: '',
     }), {
-      status: 200, // Return 200 so client gets response
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
