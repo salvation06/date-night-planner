@@ -77,8 +77,8 @@ export async function startPlanningSession(prompt: string, preferences?: {
   return callEdgeFunction('plan-start', { prompt, preferences });
 }
 
-export async function selectRestaurant(sessionId: string, restaurantId: string, selectedTime: string) {
-  return callEdgeFunction('restaurant-select', { session_id: sessionId, restaurant_id: restaurantId, selected_time: selectedTime });
+export async function selectRestaurant(sessionId: string, restaurant: any, selectedTime: string) {
+  return callEdgeFunction('restaurant-select', { session_id: sessionId, restaurant, time: selectedTime });
 }
 
 export async function selectActivity(sessionId: string, activityIds: string[]) {

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, ChevronLeft, Check, Footprints, ArrowRight } from "lucide-react";
+import { Star, ChevronLeft, Check, Footprints, ArrowRight, MapPin, Film, Music, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppStore } from "@/stores/appStore";
@@ -11,46 +11,141 @@ export default function ActivitySuggestions() {
   const selectedActivities = currentSession?.selectedActivities || [];
   const beforeActivities = activities.filter((a) => a.timeWindow === "before");
   const afterActivities = activities.filter((a) => a.timeWindow === "after");
+  const restaurantName = currentSession?.selectedRestaurant?.name || "your restaurant";
 
   const handleContinue = () => { confirmItinerary(); setSessionStage("summary"); };
 
   return (
     <div className="min-h-screen bg-background pb-32">
+      {/* Header */}
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="px-6 py-4">
           <div className="flex items-center gap-4 mb-2">
             <button onClick={() => setSessionStage("restaurants")} className="p-2 -ml-2 rounded-full hover:bg-secondary transition-colors">
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <h1 className="font-display text-xl font-semibold">Activities near {currentSession?.selectedRestaurant?.name}</h1>
+            <h1 className="font-display text-xl font-semibold">Complete Your Date</h1>
           </div>
-          <p className="text-sm text-muted-foreground">Add something special before or after dinner</p>
+          <p className="text-sm text-muted-foreground">
+            Activities within 5-10 miles of {restaurantName}
+          </p>
         </div>
       </div>
 
-      <section className="px-6 py-6">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Before Dinner</h2>
-        <div className="space-y-3">
-          {beforeActivities.map((activity, i) => (
-            <ActivityCard key={activity.id} activity={activity} index={i} isSelected={selectedActivities.some((a) => a.id === activity.id)} onToggle={() => toggleActivity(activity)} />
-          ))}
+      {/* Info Banner */}
+      <div className="px-6 pt-4">
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-primary/5 border border-primary/10">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <MapPin className="w-6 h-6 text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="font-medium text-foreground">Nearby Entertainment</p>
+            <p className="text-sm text-muted-foreground">
+              Movies, comedy clubs, bars & more near your dinner spot
+            </p>
+          </div>
         </div>
-      </section>
+      </div>
 
-      <section className="px-6 pb-6">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">After Dinner</h2>
-        <div className="space-y-3">
-          {afterActivities.map((activity, i) => (
-            <ActivityCard key={activity.id} activity={activity} index={i} isSelected={selectedActivities.some((a) => a.id === activity.id)} onToggle={() => toggleActivity(activity)} />
-          ))}
+      {/* Activity Types Legend */}
+      <div className="px-6 pt-4">
+        <div className="flex flex-wrap gap-2">
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-xs font-medium">
+            <Film className="w-3.5 h-3.5" /> Movies
+          </span>
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-xs font-medium">
+            <Music className="w-3.5 h-3.5" /> Live Music
+          </span>
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-xs font-medium">
+            <Ticket className="w-3.5 h-3.5" /> Comedy
+          </span>
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-xs font-medium">
+            🍸 Bars
+          </span>
         </div>
-      </section>
+      </div>
 
+      {/* Before Dinner Section */}
+      {beforeActivities.length > 0 && (
+        <section className="px-6 py-6">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+            ☀️ Before Dinner
+          </h2>
+          <div className="space-y-3">
+            {beforeActivities.map((activity, i) => (
+              <ActivityCard 
+                key={activity.id} 
+                activity={activity} 
+                index={i} 
+                isSelected={selectedActivities.some((a) => a.id === activity.id)} 
+                onToggle={() => toggleActivity(activity)} 
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* After Dinner Section */}
+      {afterActivities.length > 0 && (
+        <section className="px-6 pb-6">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+            🌙 After Dinner
+          </h2>
+          <div className="space-y-3">
+            {afterActivities.map((activity, i) => (
+              <ActivityCard 
+                key={activity.id} 
+                activity={activity} 
+                index={i} 
+                isSelected={selectedActivities.some((a) => a.id === activity.id)} 
+                onToggle={() => toggleActivity(activity)} 
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Empty State */}
+      {activities.length === 0 && (
+        <div className="px-6 py-12 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+            <MapPin className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="font-semibold text-lg mb-2">No activities found nearby</h3>
+          <p className="text-muted-foreground text-sm">
+            We couldn't find entertainment options near this restaurant. 
+            You can still enjoy a lovely dinner!
+          </p>
+        </div>
+      )}
+
+      {/* Footer Actions */}
       <div className="fixed bottom-20 left-0 right-0 p-6 bg-background/95 backdrop-blur-sm border-t border-border">
         <div className="flex gap-3">
-          <Button variant="outline" size="lg" className="flex-1" onClick={() => { skipActivities(); confirmItinerary(); }}>Just Dinner</Button>
-          <Button variant="romantic" size="lg" className="flex-1" onClick={handleContinue} disabled={selectedActivities.length === 0}>Continue<ArrowRight className="w-4 h-4" /></Button>
+          <Button 
+            variant="outline" 
+            size="lg" 
+            className="flex-1" 
+            onClick={() => { skipActivities(); confirmItinerary(); }}
+          >
+            Just Dinner
+          </Button>
+          <Button 
+            variant="romantic" 
+            size="lg" 
+            className="flex-1 gap-2" 
+            onClick={handleContinue} 
+            disabled={selectedActivities.length === 0}
+          >
+            Continue
+            <ArrowRight className="w-4 h-4" />
+          </Button>
         </div>
+        {selectedActivities.length > 0 && (
+          <p className="text-center text-sm text-muted-foreground mt-3">
+            {selectedActivities.length} {selectedActivities.length === 1 ? "activity" : "activities"} selected
+          </p>
+        )}
       </div>
     </div>
   );

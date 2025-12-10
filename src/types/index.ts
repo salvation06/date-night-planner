@@ -8,6 +8,7 @@ export interface UserProfile {
 
 export interface Restaurant {
   id: string;
+  yelpId?: string;
   name: string;
   photoUrl: string;
   rating: number;
@@ -18,6 +19,8 @@ export interface Restaurant {
   availableTimes: string[];
   address: string;
   distance?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface Activity {
