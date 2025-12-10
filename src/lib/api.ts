@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-async function callEdgeFunction(functionName: string, body?: Record<string, unknown>, noCache = false) {
+async function callEdgeFunction(functionName: string, body?: Record<string, unknown>, noCache = false, timeoutMs = 30000) {
   const { data: { session } } = await supabase.auth.getSession();
   
   const headers: Record<string, string> = {
@@ -20,19 +20,34 @@ async function callEdgeFunction(functionName: string, body?: Record<string, unkn
     headers['Pragma'] = 'no-cache';
   }
 
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
-    method: 'POST',
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-    cache: noCache ? 'no-store' : undefined,
-  });
+  // Create AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `API call failed: ${response.status}`);
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
+      method: 'POST',
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      cache: noCache ? 'no-store' : undefined,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(error.error || `API call failed: ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timed out. Please try again.');
+    }
+    throw error;
   }
-
-  return response.json();
 }
 
 async function callEdgeFunctionGet(functionName: string) {
@@ -97,6 +112,7 @@ export async function confirmItinerary(sessionId: string) {
 }
 
 // Yelp AI Chat API - Multi-turn conversations (no caching to ensure fresh results)
+// Uses 60 second timeout since Yelp AI can be slow
 export async function sendYelpChatMessage(
   message: string,
   conversationId?: string,
@@ -109,7 +125,7 @@ export async function sendYelpChatMessage(
     session_id: sessionId,
     location,
     _timestamp: Date.now(), // Cache buster
-  }, true); // noCache = true
+  }, true, 60000); // noCache = true, 60 second timeout
 }
 
 // Itineraries API

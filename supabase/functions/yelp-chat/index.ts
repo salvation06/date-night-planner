@@ -4,7 +4,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, cache-control, pragma',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 const YELP_API_TOKEN = Deno.env.get('YELP_CLIENT_SECRET');
@@ -40,11 +41,17 @@ function transformToRestaurant(biz: any) {
 }
 
 serve(async (req) => {
-  console.log('[yelp-chat] Request received:', req.method);
+  // Log immediately on every request
+  const method = req.method;
+  console.log('[yelp-chat] ===== Request received:', method, '=====');
   
-  if (req.method === 'OPTIONS') {
+  // Handle CORS preflight
+  if (method === 'OPTIONS') {
+    console.log('[yelp-chat] Returning CORS preflight response');
     return new Response(null, { headers: corsHeaders });
   }
+
+  console.log('[yelp-chat] Processing POST request...');
 
   const startTime = Date.now();
 
