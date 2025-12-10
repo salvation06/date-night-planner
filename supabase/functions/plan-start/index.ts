@@ -6,7 +6,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const YELP_API_KEY = Deno.env.get('YELP_API_KEY');
+const YELP_CLIENT_ID = Deno.env.get('YELP_CLIENT_ID');
+const YELP_CLIENT_SECRET = Deno.env.get('YELP_CLIENT_SECRET');
+
+// Get OAuth2 access token from Yelp
+async function getYelpAccessToken(): Promise<string> {
+  const tokenResponse = await fetch('https://api.yelp.com/oauth2/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: YELP_CLIENT_ID!,
+      client_secret: YELP_CLIENT_SECRET!,
+    }),
+  });
+
+  if (!tokenResponse.ok) {
+    const errorText = await tokenResponse.text();
+    console.error('Yelp OAuth2 token error:', errorText);
+    throw new Error(`Failed to get Yelp access token: ${errorText}`);
+  }
+
+  const tokenData = await tokenResponse.json();
+  console.log('Yelp OAuth2 token obtained successfully');
+  return tokenData.access_token;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -66,8 +92,10 @@ serve(async (req) => {
     const priceMap: Record<string, number> = { '$': 1, '$$': 2, '$$$': 3, '$$$$': 4 };
     const priceFilter = priceMap[userBudget] || 2;
 
+    // Get OAuth2 access token
+    const accessToken = await getYelpAccessToken();
+
     // Build the correct Yelp AI API v2 request structure
-    // https://api.yelp.com/ai/chat/v2
     const yelpChatRequest: {
       query: string;
       chat_id?: string;
@@ -75,7 +103,6 @@ serve(async (req) => {
       request_context?: { return_businesses?: boolean };
     } = {
       query: `Find romantic restaurants for a date: ${prompt}. Budget: ${userBudget}. Location: ${userLocation}. Looking for dinner options with great ambiance.`,
-      // chat_id is omitted for first request, API will return one for follow-ups
       request_context: {
         return_businesses: true,
       }
@@ -86,7 +113,7 @@ serve(async (req) => {
     const yelpResponse = await fetch('https://api.yelp.com/ai/chat/v2', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${YELP_API_KEY}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
@@ -99,11 +126,9 @@ serve(async (req) => {
       const yelpData = await yelpResponse.json();
       console.log('Yelp AI v2 response:', JSON.stringify(yelpData).substring(0, 2000));
       
-      // Store chat_id for potential follow-up conversations
       const chatId = yelpData.chat_id;
       console.log('Yelp chat_id for follow-ups:', chatId);
       
-      // v2 API returns businesses directly or in response.businesses
       const businesses = yelpData.businesses || yelpData.response?.businesses || [];
       const aiMessage = yelpData.message || yelpData.response?.text || '';
       
@@ -127,10 +152,9 @@ serve(async (req) => {
     } else {
       console.error('Yelp AI error, falling back to search:', await yelpResponse.text());
       
-      // Add randomization to get different results each time
       const sortOptions = ['rating', 'review_count', 'best_match'];
       const randomSort = sortOptions[Math.floor(Math.random() * sortOptions.length)];
-      const randomOffset = Math.floor(Math.random() * 20); // Random offset 0-19
+      const randomOffset = Math.floor(Math.random() * 20);
       
       const searchParams = new URLSearchParams({
         term: prompt || 'romantic restaurant',
@@ -146,14 +170,13 @@ serve(async (req) => {
       
       const searchResponse = await fetch(`https://api.yelp.com/v3/businesses/search?${searchParams}`, {
         headers: {
-          'Authorization': `Bearer ${YELP_API_KEY}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Accept': 'application/json',
         },
       });
       
       if (searchResponse.ok) {
         const searchData = await searchResponse.json();
-        // Shuffle the results for additional randomization
         const shuffled = (searchData.businesses || []).sort(() => Math.random() - 0.5);
         restaurants = shuffled.slice(0, 5).map((biz: any) => ({
           yelp_id: biz.id,
