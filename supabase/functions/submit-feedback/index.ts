@@ -1,5 +1,7 @@
+// Submit Feedback - Thin orchestration layer using Agent2Agent framework
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { agentOrchestrator } from '../_shared/agents/orchestrator.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +14,7 @@ serve(async (req) => {
   }
 
   try {
+    // Auth validation
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -34,28 +37,24 @@ serve(async (req) => {
       });
     }
 
+    // Extract request data
     const { itinerary_id, rating, comment } = await req.json();
     console.log('Feedback submission:', { itinerary_id, rating, comment });
 
-    const { data: itinerary, error: updateError } = await supabase
-      .from('itineraries')
-      .update({
-        feedback_rating: rating,
-        feedback_comment: comment,
-        status: 'past',
-      })
-      .eq('id', itinerary_id)
-      .eq('user_id', user.id)
-      .select()
-      .single();
+    // Delegate to Agent Orchestrator
+    const result = await agentOrchestrator.submitFeedback(
+      user.id,
+      itinerary_id,
+      rating,
+      comment
+    );
 
-    if (updateError) {
-      console.error('Feedback update error:', updateError);
-      throw updateError;
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to submit feedback');
     }
 
     return new Response(JSON.stringify({
-      itinerary,
+      itinerary: result.data,
       success: true,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
