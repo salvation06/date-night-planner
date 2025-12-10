@@ -198,7 +198,16 @@ export const useAppStore = create<AppState>()(
               : null,
           }));
 
-          const result = await api.selectRestaurant(session.id, restaurant.id, time);
+          // Pass full restaurant object for geolocation-based activity search
+          const result = await api.selectRestaurant(session.id, {
+            id: restaurant.id,
+            yelp_id: restaurant.yelpId,
+            name: restaurant.name,
+            latitude: restaurant.latitude,
+            longitude: restaurant.longitude,
+            cuisine: restaurant.cuisine,
+            price: restaurant.price,
+          }, time);
 
           const activities: Activity[] = (result.activities || []).map((a: any) => ({
             id: a.id,
