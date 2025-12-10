@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ChevronLeft, MapPin, Share2, RotateCcw, Save, Sparkles } from "lucide-react";
+import { ChevronLeft, Share2, RotateCcw, Save, Sparkles, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppStore } from "@/stores/appStore";
@@ -12,6 +12,19 @@ export default function ItinerarySummary() {
   const itinerary = itineraries[0];
 
   if (!itinerary) return null;
+
+  // Get Yelp ID for a timeline block by matching title to restaurant or activities
+  const getYelpIdForBlock = (blockTitle: string): string | null => {
+    if (itinerary.restaurant.name === blockTitle) {
+      return itinerary.restaurant.yelpId || null;
+    }
+    const activity = itinerary.activities.find(a => a.name === blockTitle);
+    return activity?.yelpId || null;
+  };
+
+  const openYelpPage = (yelpId: string) => {
+    window.open(`https://www.yelp.com/biz/${yelpId}`, '_blank');
+  };
 
   const handleSave = () => { toast.success("Date saved to My Dates!"); resetSession(); navigate("/dates"); };
   const handleShare = () => {
@@ -44,18 +57,15 @@ export default function ItinerarySummary() {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-1"><h3 className="font-semibold">{block.title}</h3><span className="text-sm font-medium text-rose">{block.time}</span></div>
                     <p className="text-sm text-muted-foreground mb-2">{block.subtitle}</p>
-                    {block.extra && <div className="flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="w-3.5 h-3.5" /><span>{block.extra}</span></div>}
-                    {block.hasLocation && block.extra && (
+                    {block.extra && <p className="text-sm text-muted-foreground">{block.extra}</p>}
+                    {getYelpIdForBlock(block.title) && (
                       <Button 
                         variant="ghost" 
                         size="sm" 
                         className="mt-2 -ml-2 text-rose"
-                        onClick={() => {
-                          const address = encodeURIComponent(block.extra || '');
-                          window.open(`https://www.google.com/maps/dir/?api=1&destination=${address}`, '_blank');
-                        }}
+                        onClick={() => openYelpPage(getYelpIdForBlock(block.title)!)}
                       >
-                        <MapPin className="w-4 h-4" />Get Directions
+                        <ExternalLink className="w-4 h-4" />View on Yelp
                       </Button>
                     )}
                   </CardContent>
