@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/stores/appStore";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const budgetOptions = ["$", "$$", "$$$", "$$$$"];
 const dietaryOptions = ["None", "Vegetarian", "Vegan", "Gluten-free", "Kosher", "Halal"];
@@ -14,17 +15,25 @@ const vibeOptions = ["Romantic", "Adventurous", "Low-key", "Foodie", "Trendy", "
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { setProfile, completeOnboarding } = useAppStore();
+  const { saveProfile, completeOnboarding } = useAppStore();
   const [step, setStep] = useState(0);
   const [location, setLocation] = useState("");
   const [budget, setBudget] = useState<string>("$$");
   const [dietary, setDietary] = useState<string[]>([]);
   const [vibeTags, setVibeTags] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleComplete = () => {
-    setProfile({ location, budget: budget as any, dietary, vibeTags });
-    completeOnboarding();
-    navigate("/plan");
+  const handleComplete = async () => {
+    setIsSubmitting(true);
+    try {
+      await saveProfile({ location, budget: budget as any, dietary, vibeTags });
+      completeOnboarding();
+      navigate("/plan");
+    } catch (error) {
+      toast.error("Failed to save profile. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const toggleDietary = (item: string) => {
@@ -72,7 +81,7 @@ export default function Onboarding() {
               className={cn(
                 "h-16 rounded-xl text-xl font-semibold transition-all duration-200",
                 budget === option
-                  ? "bg-rose text-primary-foreground shadow-card"
+                  ? "bg-primary text-primary-foreground shadow-card"
                   : "bg-secondary hover:bg-secondary/80 text-secondary-foreground"
               )}
             >
@@ -95,7 +104,7 @@ export default function Onboarding() {
               className={cn(
                 "px-4 py-3 rounded-full text-sm font-medium transition-all duration-200",
                 dietary.includes(option) || (option === "None" && dietary.length === 0)
-                  ? "bg-rose text-primary-foreground shadow-soft"
+                  ? "bg-primary text-primary-foreground shadow-soft"
                   : "bg-secondary hover:bg-secondary/80 text-secondary-foreground"
               )}
             >
@@ -118,7 +127,7 @@ export default function Onboarding() {
               className={cn(
                 "px-4 py-3 rounded-full text-sm font-medium transition-all duration-200",
                 vibeTags.includes(option)
-                  ? "bg-rose text-primary-foreground shadow-soft"
+                  ? "bg-primary text-primary-foreground shadow-soft"
                   : "bg-secondary hover:bg-secondary/80 text-secondary-foreground"
               )}
             >
@@ -141,7 +150,7 @@ export default function Onboarding() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose/10 text-rose mb-6"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6"
         >
           <Sparkles className="w-4 h-4" />
           <span className="text-sm font-medium">AI-Powered Planning</span>
@@ -172,7 +181,7 @@ export default function Onboarding() {
               key={i}
               className={cn(
                 "h-1 flex-1 rounded-full transition-colors duration-300",
-                i <= step ? "bg-rose" : "bg-muted"
+                i <= step ? "bg-primary" : "bg-muted"
               )}
             />
           ))}
@@ -213,10 +222,10 @@ export default function Onboarding() {
               setStep((s) => s + 1);
             }
           }}
-          disabled={!currentStep.isValid}
+          disabled={!currentStep.isValid || isSubmitting}
         >
-          {isLastStep ? "Start Planning" : "Continue"}
-          <ArrowRight className="w-5 h-5" />
+          {isSubmitting ? "Saving..." : isLastStep ? "Start Planning" : "Continue"}
+          {!isSubmitting && <ArrowRight className="w-5 h-5" />}
         </Button>
         {step > 0 && (
           <Button
@@ -224,6 +233,7 @@ export default function Onboarding() {
             size="lg"
             className="w-full"
             onClick={() => setStep((s) => s - 1)}
+            disabled={isSubmitting}
           >
             Back
           </Button>
