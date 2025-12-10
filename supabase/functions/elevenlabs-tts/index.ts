@@ -69,11 +69,16 @@ serve(async (req) => {
 
     console.log('[elevenlabs-tts] Speech generated successfully');
 
-    // Convert audio to base64 for easy frontend consumption
+    // Convert audio to base64 using chunked approach to avoid stack overflow
     const arrayBuffer = await response.arrayBuffer();
-    const base64Audio = btoa(
-      String.fromCharCode(...new Uint8Array(arrayBuffer))
-    );
+    const uint8Array = new Uint8Array(arrayBuffer);
+    let binary = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+      binary += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    const base64Audio = btoa(binary);
 
     return new Response(
       JSON.stringify({ audioContent: base64Audio }),
