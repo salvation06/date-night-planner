@@ -6,7 +6,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const YELP_API_KEY = Deno.env.get('YELP_API_KEY');
+const YELP_CLIENT_ID = Deno.env.get('YELP_CLIENT_ID');
+const YELP_CLIENT_SECRET = Deno.env.get('YELP_CLIENT_SECRET');
+
+// Get OAuth2 access token from Yelp
+async function getYelpAccessToken(): Promise<string> {
+  const tokenResponse = await fetch('https://api.yelp.com/oauth2/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: YELP_CLIENT_ID!,
+      client_secret: YELP_CLIENT_SECRET!,
+    }),
+  });
+
+  if (!tokenResponse.ok) {
+    const errorText = await tokenResponse.text();
+    console.error('Yelp OAuth2 token error:', errorText);
+    throw new Error(`Failed to get Yelp access token: ${errorText}`);
+  }
+
+  const tokenData = await tokenResponse.json();
+  console.log('Yelp OAuth2 token obtained successfully');
+  return tokenData.access_token;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -48,8 +74,10 @@ serve(async (req) => {
 
     const userLocation = location || profile?.location || 'New York, NY';
 
+    // Get OAuth2 access token
+    const accessToken = await getYelpAccessToken();
+
     // Build the Yelp AI API v2 request structure
-    // https://api.yelp.com/ai/chat/v2
     const yelpChatRequest: {
       query: string;
       chat_id?: string;
@@ -62,7 +90,7 @@ serve(async (req) => {
       }
     };
 
-    // Include chat_id for multi-turn conversations (use conversation_id from previous response)
+    // Include chat_id for multi-turn conversations
     if (conversation_id) {
       yelpChatRequest.chat_id = conversation_id;
     }
@@ -72,7 +100,7 @@ serve(async (req) => {
     const yelpResponse = await fetch('https://api.yelp.com/ai/chat/v2', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${YELP_API_KEY}`,
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
@@ -134,7 +162,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       ai_response: aiResponse,
-      conversation_id: newChatId, // Return chat_id as conversation_id for frontend compatibility
+      conversation_id: newChatId,
       restaurants,
       raw_response: yelpData,
     }), {
