@@ -168,10 +168,19 @@ serve(async (req) => {
 
     const yelpData = await yelpResponse.json();
     console.log('[yelp-chat] Yelp response keys:', Object.keys(yelpData));
+    
+    // Log response structure for debugging
+    if (yelpData.response) {
+      console.log('[yelp-chat] response object keys:', Object.keys(yelpData.response));
+    }
 
     // Extract response data from v2 API structure
-    const aiResponse = yelpData.message || yelpData.response?.text || 'Here are some options based on your request:';
+    // The AI response text is at response.text per Yelp API docs
+    const responseText = yelpData.response?.text || null;
+    const aiResponse = responseText || yelpData.message || 'Here are some options based on your request:';
     const newChatId = yelpData.chat_id || crypto.randomUUID();
+    
+    console.log('[yelp-chat] AI response text:', aiResponse?.substring(0, 200));
     
     // Extract businesses from various possible locations in the response
     let businesses = yelpData.entities?.[0]?.businesses || yelpData.businesses || yelpData.response?.businesses || [];
@@ -179,7 +188,7 @@ serve(async (req) => {
 
     // If no businesses found, log the full response for debugging
     if (businesses.length === 0) {
-      console.log('[yelp-chat] No businesses found. Full response:', JSON.stringify(yelpData).substring(0, 1000));
+      console.log('[yelp-chat] No businesses found. Full response:', JSON.stringify(yelpData).substring(0, 1500));
     }
 
     // Map businesses to our restaurant format
@@ -209,8 +218,11 @@ serve(async (req) => {
 
     console.log('[yelp-chat] Total time:', Date.now() - startTime, 'ms');
 
+    // Return response with structure matching Yelp API v2 docs
     return new Response(JSON.stringify({
       ai_response: aiResponse,
+      response: yelpData.response || { text: aiResponse }, // Include full response object
+      chat_id: newChatId,
       conversation_id: newChatId,
       restaurants,
     }), {
