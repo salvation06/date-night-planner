@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Send, Loader2, MessageSquare, MapPin, Star, ExternalLink } from "lucide-react";
+import { Mic, MicOff, Send, Loader2, MessageSquare, MapPin, Star, ExternalLink, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { sendYelpChatMessage } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -43,10 +44,12 @@ export default function VoiceSearchInterface({
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | undefined>();
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
     isListening,
-    isSupported,
+    isSupported: speechRecognitionSupported,
     interimTranscript,
     toggleListening,
   } = useSpeechRecognition({
@@ -58,12 +61,20 @@ export default function VoiceSearchInterface({
     },
   });
 
-  // Auto-send when voice recognition completes with text
+  const {
+    speak,
+    cancel: cancelSpeech,
+    isSpeaking,
+    isSupported: speechSynthesisSupported,
+  } = useSpeechSynthesis({
+    rate: 1,
+    pitch: 1,
+  });
+
+  // Scroll to bottom when new messages arrive
   useEffect(() => {
-    if (!isListening && inputText.trim() && messages.length === 0) {
-      // Don't auto-send, let user review and send manually
-    }
-  }, [isListening, inputText, messages.length]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
@@ -91,15 +102,31 @@ export default function VoiceSearchInterface({
         setConversationId(response.conversation_id);
       }
 
+      const aiResponse = response.ai_response || "Here are some options I found for you:";
+      
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: response.ai_response || "Here are some options I found for you:",
+        content: aiResponse,
         restaurants: response.restaurants,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Read response aloud if voice is enabled
+      if (voiceEnabled && speechSynthesisSupported) {
+        // Build speech text including restaurant names
+        let speechText = aiResponse;
+        if (response.restaurants?.length > 0) {
+          const restaurantNames = response.restaurants
+            .slice(0, 3)
+            .map((r: Restaurant) => r.name)
+            .join(", ");
+          speechText += ` I found ${response.restaurants.length} options including ${restaurantNames}.`;
+        }
+        speak(speechText);
+      }
 
       if (response.restaurants?.length > 0) {
         onRestaurantsFound?.(response.restaurants);
@@ -107,6 +134,10 @@ export default function VoiceSearchInterface({
     } catch (error) {
       console.error("Chat error:", error);
       toast.error("Failed to get response. Please try again.");
+      
+      if (voiceEnabled && speechSynthesisSupported) {
+        speak("Sorry, I had trouble finding that. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -115,6 +146,13 @@ export default function VoiceSearchInterface({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     sendMessage(inputText);
+  };
+
+  const toggleVoice = () => {
+    if (isSpeaking) {
+      cancelSpeech();
+    }
+    setVoiceEnabled(!voiceEnabled);
   };
 
   const suggestedQuestions = [
@@ -126,6 +164,37 @@ export default function VoiceSearchInterface({
 
   return (
     <div className="flex flex-col h-full">
+      {/* Header with voice toggle */}
+      <div className="px-4 py-2 border-b border-border flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium">Yelp AI Chat</span>
+        </div>
+        {speechSynthesisSupported && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleVoice}
+            className={cn(
+              "gap-2",
+              voiceEnabled ? "text-primary" : "text-muted-foreground"
+            )}
+          >
+            {voiceEnabled ? (
+              <>
+                <Volume2 className="w-4 h-4" />
+                <span className="text-xs">Voice On</span>
+              </>
+            ) : (
+              <>
+                <VolumeX className="w-4 h-4" />
+                <span className="text-xs">Voice Off</span>
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+
       {/* Voice Indicator */}
       <AnimatePresence>
         {isListening && (
@@ -151,15 +220,53 @@ export default function VoiceSearchInterface({
         )}
       </AnimatePresence>
 
+      {/* Speaking Indicator */}
+      <AnimatePresence>
+        {isSpeaking && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="px-4 py-2 bg-primary/10 border-b border-primary/20"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  <span className="w-1 h-3 bg-primary rounded-full animate-pulse" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1 h-4 bg-primary rounded-full animate-pulse" style={{ animationDelay: "150ms" }} />
+                  <span className="w-1 h-3 bg-primary rounded-full animate-pulse" style={{ animationDelay: "300ms" }} />
+                </div>
+                <span className="text-xs text-primary font-medium">Speaking...</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={cancelSpeech}
+                className="text-xs h-6 px-2"
+              >
+                Stop
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.length === 0 ? (
           <div className="text-center py-8">
-            <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+              <MessageSquare className="w-8 h-8 text-primary" />
+            </div>
             <h3 className="font-semibold text-lg mb-2">Start a Conversation</h3>
-            <p className="text-muted-foreground text-sm mb-6">
+            <p className="text-muted-foreground text-sm mb-2">
               Ask me anything about finding the perfect spot for your date!
             </p>
+            {voiceEnabled && speechSynthesisSupported && (
+              <p className="text-xs text-primary mb-6">
+                🔊 Voice responses are enabled
+              </p>
+            )}
             <div className="flex flex-wrap justify-center gap-2">
               {suggestedQuestions.slice(0, 2).map((question) => (
                 <button
@@ -296,6 +403,8 @@ export default function VoiceSearchInterface({
             </div>
           </motion.div>
         )}
+        
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Follow-up suggestions */}
@@ -319,7 +428,7 @@ export default function VoiceSearchInterface({
       {/* Input Area */}
       <form onSubmit={handleSubmit} className="p-4 border-t border-border bg-background">
         <div className="flex items-center gap-2">
-          {isSupported && (
+          {speechRecognitionSupported && (
             <Button
               type="button"
               variant={isListening ? "destructive" : "outline"}
