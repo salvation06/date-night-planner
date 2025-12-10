@@ -5,7 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const YELP_API_KEY = Deno.env.get('YELP_API_KEY');
+// Use YELP_CLIENT_SECRET directly as the Bearer token
+const YELP_API_TOKEN = Deno.env.get('YELP_CLIENT_SECRET');
 const YELP_BASE_URL = 'https://api.yelp.com/v3';
 
 serve(async (req) => {
@@ -14,10 +15,10 @@ serve(async (req) => {
   }
 
   try {
-    const { endpoint, method = 'POST', body } = await req.json();
+    const { endpoint, method = 'GET', body } = await req.json();
 
-    if (!YELP_API_KEY) {
-      throw new Error('YELP_API_KEY is not configured');
+    if (!YELP_API_TOKEN) {
+      throw new Error('YELP_CLIENT_SECRET is not configured');
     }
 
     console.log(`Yelp API request: ${method} ${endpoint}`, body);
@@ -25,9 +26,9 @@ serve(async (req) => {
     const response = await fetch(`${YELP_BASE_URL}${endpoint}`, {
       method,
       headers: {
-        'Authorization': `Bearer ${YELP_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        'accept': 'application/json',
+        'authorization': `Bearer ${YELP_API_TOKEN}`,
+        'content-type': 'application/json',
       },
       body: method !== 'GET' ? JSON.stringify(body) : undefined,
     });

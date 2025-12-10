@@ -6,34 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const YELP_CLIENT_ID = Deno.env.get('YELP_CLIENT_ID');
-const YELP_CLIENT_SECRET = Deno.env.get('YELP_CLIENT_SECRET');
-
-// Get OAuth2 access token from Yelp using v3 endpoint
-async function getYelpAccessToken(): Promise<string> {
-  const tokenResponse = await fetch('https://api.yelp.com/oauth2/token/v3', {
-    method: 'POST',
-    headers: {
-      'accept': 'application/json',
-      'content-type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      client_id: YELP_CLIENT_ID!,
-      client_secret: YELP_CLIENT_SECRET!,
-    }),
-  });
-
-  if (!tokenResponse.ok) {
-    const errorText = await tokenResponse.text();
-    console.error('Yelp OAuth2 v3 token error:', errorText);
-    throw new Error(`Failed to get Yelp access token: ${errorText}`);
-  }
-
-  const tokenData = await tokenResponse.json();
-  console.log('Yelp OAuth2 v3 token obtained successfully');
-  return tokenData.access_token;
-}
+// Use YELP_CLIENT_SECRET directly as the Bearer token
+const YELP_API_TOKEN = Deno.env.get('YELP_CLIENT_SECRET');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -41,8 +15,8 @@ serve(async (req) => {
   }
 
   try {
-    if (!YELP_CLIENT_ID || !YELP_CLIENT_SECRET) {
-      throw new Error('YELP_CLIENT_ID or YELP_CLIENT_SECRET is not configured');
+    if (!YELP_API_TOKEN) {
+      throw new Error('YELP_CLIENT_SECRET is not configured');
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -97,16 +71,8 @@ serve(async (req) => {
     const priceMap: Record<string, number> = { '$': 1, '$$': 2, '$$$': 3, '$$$$': 4 };
     const priceFilter = priceMap[userBudget] || 2;
 
-    // Get OAuth2 access token using v3 endpoint
-    const accessToken = await getYelpAccessToken();
-
-    // Build the correct Yelp AI API v2 request structure
-    const yelpChatRequest: {
-      query: string;
-      chat_id?: string;
-      user_context?: { latitude?: number; longitude?: number };
-      request_context?: { return_businesses?: boolean };
-    } = {
+    // Build the Yelp AI API v2 request structure
+    const yelpChatRequest = {
       query: `Find romantic restaurants for a date: ${prompt}. Budget: ${userBudget}. Location: ${userLocation}. Looking for dinner options with great ambiance.`,
       request_context: {
         return_businesses: true,
@@ -118,9 +84,9 @@ serve(async (req) => {
     const yelpResponse = await fetch('https://api.yelp.com/ai/chat/v2', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        'accept': 'application/json',
+        'authorization': `Bearer ${YELP_API_TOKEN}`,
+        'content-type': 'application/json',
       },
       body: JSON.stringify(yelpChatRequest),
     });
@@ -174,9 +140,10 @@ serve(async (req) => {
       console.log('Fallback search params:', { term: prompt, location: userLocation, sort: randomSort, offset: randomOffset });
       
       const searchResponse = await fetch(`https://api.yelp.com/v3/businesses/search?${searchParams}`, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json',
+          'accept': 'application/json',
+          'authorization': `Bearer ${YELP_API_TOKEN}`,
         },
       });
       
