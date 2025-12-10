@@ -47,6 +47,13 @@ export default function VoiceSearchInterface({
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Reset conversation on mount to ensure fresh results every time
+  useEffect(() => {
+    setMessages([]);
+    setConversationId(undefined);
+    setInputText("");
+  }, [location]); // Reset when location changes too
+
   const {
     isListening,
     isSupported: speechRecognitionSupported,

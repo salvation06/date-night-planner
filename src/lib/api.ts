@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-async function callEdgeFunction(functionName: string, body?: Record<string, unknown>) {
+async function callEdgeFunction(functionName: string, body?: Record<string, unknown>, noCache = false) {
   const { data: { session } } = await supabase.auth.getSession();
   
   const headers: Record<string, string> = {
@@ -14,10 +14,17 @@ async function callEdgeFunction(functionName: string, body?: Record<string, unkn
     headers['Authorization'] = `Bearer ${session.access_token}`;
   }
 
+  // Add cache-busting headers if requested
+  if (noCache) {
+    headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+    headers['Pragma'] = 'no-cache';
+  }
+
   const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
     method: 'POST',
     headers,
     body: body ? JSON.stringify(body) : undefined,
+    cache: noCache ? 'no-store' : undefined,
   });
 
   if (!response.ok) {
@@ -89,7 +96,7 @@ export async function confirmItinerary(sessionId: string) {
   return callEdgeFunction('itinerary-confirm', { session_id: sessionId });
 }
 
-// Yelp AI Chat API - Multi-turn conversations
+// Yelp AI Chat API - Multi-turn conversations (no caching to ensure fresh results)
 export async function sendYelpChatMessage(
   message: string,
   conversationId?: string,
@@ -101,7 +108,8 @@ export async function sendYelpChatMessage(
     conversation_id: conversationId,
     session_id: sessionId,
     location,
-  });
+    _timestamp: Date.now(), // Cache buster
+  }, true); // noCache = true
 }
 
 // Itineraries API
