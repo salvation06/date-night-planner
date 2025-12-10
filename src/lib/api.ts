@@ -89,6 +89,21 @@ export async function confirmItinerary(sessionId: string) {
   return callEdgeFunction('itinerary-confirm', { session_id: sessionId });
 }
 
+// Yelp AI Chat API - Multi-turn conversations
+export async function sendYelpChatMessage(
+  message: string,
+  conversationId?: string,
+  sessionId?: string,
+  location?: string
+) {
+  return callEdgeFunction('yelp-chat', {
+    message,
+    conversation_id: conversationId,
+    session_id: sessionId,
+    location,
+  });
+}
+
 // Itineraries API
 export async function getItineraries() {
   return callEdgeFunctionGet('get-itineraries');
