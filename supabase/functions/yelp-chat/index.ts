@@ -111,15 +111,16 @@ serve(async (req) => {
     
     // Don't include chat_id - we want fresh results each time
 
-    console.log('[yelp-chat] Calling Yelp AI...');
+    console.log('[yelp-chat] Calling Yelp AI API at https://api.yelp.com/ai/chat/v2');
+    console.log('[yelp-chat] API token length:', YELP_API_TOKEN?.length);
     const yelpStartTime = Date.now();
 
-    // Use a shorter timeout (20 seconds) for the Yelp API
+    // Use 45 second timeout for the Yelp AI API (it can be slow)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.log('[yelp-chat] Yelp API timeout triggered');
+      console.log('[yelp-chat] Yelp API timeout after 45 seconds');
       controller.abort();
-    }, 20000);
+    }, 45000);
 
     let yelpResponse;
     try {
