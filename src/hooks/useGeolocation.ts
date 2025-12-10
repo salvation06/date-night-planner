@@ -52,14 +52,31 @@ export function useGeolocation(): UseGeolocationReturn {
 
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
+    // Helper to get position with specific options
+    const getPosition = (options: PositionOptions): Promise<GeolocationPosition> => {
+      return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, options);
+      });
+    };
+
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
+      let position: GeolocationPosition;
+
+      try {
+        // First try: high accuracy with short timeout (for GPS)
+        position = await getPosition({
           enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 60000, // 1 minute cache
+        });
+      } catch {
+        // Fallback: low accuracy (network-based) with longer timeout
+        position = await getPosition({
+          enableHighAccuracy: false,
           timeout: 10000,
           maximumAge: 300000, // 5 minutes cache
         });
-      });
+      }
 
       const { latitude, longitude } = position.coords;
       const address = await reverseGeocode(latitude, longitude);
@@ -76,13 +93,13 @@ export function useGeolocation(): UseGeolocationReturn {
       if (error instanceof GeolocationPositionError) {
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = "Location permission denied";
+            errorMessage = "Location permission denied. Please allow location access.";
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage = "Location unavailable";
+            errorMessage = "Location unavailable. Please try again.";
             break;
           case error.TIMEOUT:
-            errorMessage = "Location request timed out";
+            errorMessage = "Location request timed out. Please try again.";
             break;
         }
       }
