@@ -81,8 +81,8 @@ export async function selectRestaurant(sessionId: string, restaurant: any, selec
   return callEdgeFunction('restaurant-select', { session_id: sessionId, restaurant, time: selectedTime });
 }
 
-export async function selectActivity(sessionId: string, activityIds: string[]) {
-  return callEdgeFunction('activity-select', { session_id: sessionId, activity_ids: activityIds });
+export async function selectActivity(sessionId: string, activities: any[], skip = false) {
+  return callEdgeFunction('activity-select', { session_id: sessionId, activities, skip });
 }
 
 export async function confirmItinerary(sessionId: string) {

@@ -25,6 +25,7 @@ export interface Restaurant {
 
 export interface Activity {
   id: string;
+  yelpId?: string;
   name: string;
   icon: string;
   photoUrl: string;
