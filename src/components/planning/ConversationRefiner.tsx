@@ -79,7 +79,7 @@ export default function ConversationRefiner() {
   return (
     <>
       {/* Collapsed Bar - Fixed at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-card to-card/95 backdrop-blur-md border-t border-border shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-card to-card/95 backdrop-blur-md border-t border-border shadow-2xl">
         <div className="px-4 py-3">
           {/* Toggle Header */}
           <button
