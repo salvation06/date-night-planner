@@ -100,7 +100,7 @@ export default function MyDates() {
           ) : itineraries.length === 0 ? (
             <EmptyState onPlan={() => navigate("/plan")} />
           ) : (
-            <div className="px-5 py-8 space-y-8">
+            <div className="px-6 py-8 space-y-8 max-w-md mx-auto">
               {/* Upcoming Dates */}
               {upcoming.length > 0 && (
                 <motion.section
@@ -114,7 +114,7 @@ export default function MyDates() {
                       Coming Up
                     </h2>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     {upcoming.map((itinerary, i) => (
                       <DateCard key={itinerary.id} itinerary={itinerary} index={i} />
                     ))}
@@ -135,7 +135,7 @@ export default function MyDates() {
                       Sweet Memories
                     </h2>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     {past.map((itinerary, i) => (
                       <DateCard key={itinerary.id} itinerary={itinerary} index={i} isPast />
                     ))}
@@ -260,20 +260,20 @@ function DateCard({ itinerary, index, isPast }: DateCardProps) {
         )}
         onClick={handleView}
       >
-        <CardContent className="p-0">
+        <CardContent className="p-0 aspect-square flex flex-col">
           {/* Gradient Header */}
           <div className={cn(
-            "relative p-4 pb-6 bg-gradient-to-br",
+            "relative p-3 bg-gradient-to-br flex-shrink-0",
             gradient
           )}>
             {/* Date Badge */}
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-muted-foreground bg-background/80 backdrop-blur-sm px-2 py-1 rounded-full">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-medium text-muted-foreground bg-background/80 backdrop-blur-sm px-2 py-0.5 rounded-full">
                 {itinerary.date}
               </span>
               {itinerary.feedback && (
                 <span className={cn(
-                  "text-lg",
+                  "text-sm",
                   itinerary.feedback.rating === "great" && "animate-pulse"
                 )}>
                   {itinerary.feedback.rating === "great" && "🎉"}
@@ -282,23 +282,25 @@ function DateCard({ itinerary, index, isPast }: DateCardProps) {
                 </span>
               )}
             </div>
-            
-            {/* Theme/Headline */}
-            <h3 className="font-display text-lg font-bold text-foreground leading-tight mb-1 line-clamp-2">
+          </div>
+          
+          {/* Theme/Headline */}
+          <div className="px-3 pt-2">
+            <h3 className="font-display text-sm font-bold text-foreground leading-snug line-clamp-2">
               {itinerary.headline}
             </h3>
           </div>
           
           {/* Details Section */}
-          <div className="p-4 pt-3 space-y-3 bg-card">
+          <div className="p-3 pt-2 space-y-2 bg-card flex-1 flex flex-col">
             {/* Restaurant */}
-            <div className="flex items-start gap-2">
-              <span className="text-base mt-0.5">🍽️</span>
+            <div className="flex items-start gap-1.5">
+              <span className="text-xs">🍽️</span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
+                <p className="text-xs font-medium text-foreground truncate">
                   {itinerary.restaurant.name}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground">
                   {itinerary.restaurant.cuisine} · {itinerary.restaurant.price}
                 </p>
               </div>
@@ -306,49 +308,47 @@ function DateCard({ itinerary, index, isPast }: DateCardProps) {
             
             {/* Activities */}
             {itinerary.activities.length > 0 && (
-              <div className="flex items-start gap-2">
-                <span className="text-base mt-0.5">✨</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-muted-foreground">
-                    +{itinerary.activities.length} {itinerary.activities.length === 1 ? 'activity' : 'activities'}
-                  </p>
-                  <p className="text-xs text-muted-foreground/70 truncate">
-                    {itinerary.activities.map(a => a.name).join(', ')}
-                  </p>
-                </div>
+              <div className="flex items-start gap-1.5">
+                <span className="text-xs">✨</span>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  +{itinerary.activities.length} {itinerary.activities.length === 1 ? 'activity' : 'activities'}
+                </p>
               </div>
             )}
             
+            {/* Spacer */}
+            <div className="flex-1" />
+            
             {/* Time & Cost */}
-            <div className="flex items-center justify-between pt-2 border-t border-border/50">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="w-3 h-3" />
+            <div className="flex items-center justify-between pt-1.5 border-t border-border/50">
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <Clock className="w-2.5 h-2.5" />
                 <span>{itinerary.timelineBlocks[0]?.time || "7:00 PM"}</span>
               </div>
-              <span className="text-xs font-medium text-foreground">
+              <span className="text-[10px] font-medium text-foreground">
                 {itinerary.costEstimate}
               </span>
             </div>
             
             {/* Action Buttons */}
-            <div className="flex gap-2 pt-1">
+            <div className="flex gap-1.5">
               <Button 
                 variant="soft" 
                 size="sm"
-                className="flex-1 h-8 text-xs"
+                className="flex-1 h-6 text-[10px]"
                 onClick={(e) => { e.stopPropagation(); handleView(); }}
               >
-                <Eye className="w-3.5 h-3.5 mr-1" />
+                <Eye className="w-3 h-3 mr-0.5" />
                 View
               </Button>
               {itinerary.restaurant.yelpId && (
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  className="h-8 px-3 text-xs text-rose hover:text-rose-dark"
+                  className="h-6 px-2 text-[10px] text-rose hover:text-rose-dark"
                   onClick={openYelpPage}
                 >
-                  <ExternalLink className="w-3.5 h-3.5" />
+                  <ExternalLink className="w-3 h-3" />
                 </Button>
               )}
             </div>
