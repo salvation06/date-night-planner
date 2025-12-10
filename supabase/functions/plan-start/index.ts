@@ -106,21 +106,28 @@ serve(async (req) => {
       console.log('Extracted businesses count:', businesses.length);
       
       if (businesses.length > 0) {
-        restaurants = businesses.map((biz: any) => ({
-          yelp_id: biz.id,
-          name: biz.name,
-          photo_url: biz.image_url || biz.photos?.[0],
-          rating: biz.rating,
-          price: biz.price,
-          cuisine: biz.categories?.[0]?.title || 'Restaurant',
-          tags: biz.categories?.map((c: any) => c.title) || [],
-          why_this_works: aiMessage || `Great for a romantic date with ${biz.rating} stars`,
-          available_times: ['6:00 PM', '6:30 PM', '7:00 PM', '7:30 PM', '8:00 PM', '8:30 PM'],
-          address: biz.location?.display_address?.join(', ') || biz.location?.address1,
-          distance: biz.distance ? `${(biz.distance / 1609.34).toFixed(1)} mi` : null,
-          latitude: biz.coordinates?.latitude,
-          longitude: biz.coordinates?.longitude,
-        }));
+        restaurants = businesses.map((biz: any) => {
+          // Generate unique description for each restaurant
+          const categories = biz.categories?.map((c: any) => c.title).join(', ') || 'restaurant';
+          const priceDesc = biz.price === '$' ? 'budget-friendly' : biz.price === '$$' ? 'moderately priced' : biz.price === '$$$' ? 'upscale' : 'fine dining';
+          const ratingDesc = biz.rating >= 4.5 ? 'exceptional' : biz.rating >= 4 ? 'highly rated' : 'popular';
+          
+          return {
+            yelp_id: biz.id,
+            name: biz.name,
+            photo_url: biz.image_url || biz.photos?.[0],
+            rating: biz.rating,
+            price: biz.price,
+            cuisine: biz.categories?.[0]?.title || 'Restaurant',
+            tags: biz.categories?.map((c: any) => c.title) || [],
+            why_this_works: `${ratingDesc} ${priceDesc} spot known for ${categories}. ${biz.review_count ? `With ${biz.review_count} reviews, it's` : "It's"} a great choice for your date.`,
+            available_times: ['6:00 PM', '6:30 PM', '7:00 PM', '7:30 PM', '8:00 PM', '8:30 PM'],
+            address: biz.location?.display_address?.join(', ') || biz.location?.address1,
+            distance: biz.distance ? `${(biz.distance / 1609.34).toFixed(1)} mi` : null,
+            latitude: biz.coordinates?.latitude,
+            longitude: biz.coordinates?.longitude,
+          };
+        });
       }
     } else {
       console.error('Yelp AI error, falling back to search:', await yelpResponse.text());
