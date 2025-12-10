@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Heart, Plus, Eye, Star, MapPin, Clock, Sparkles, ExternalLink } from "lucide-react";
+import { Heart, Plus, Eye, Clock, Sparkles, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppStore } from "@/stores/appStore";
@@ -114,9 +114,9 @@ export default function MyDates() {
                       Coming Up
                     </h2>
                   </div>
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
                     {upcoming.map((itinerary, i) => (
-                      <DateCard key={itinerary.id} itinerary={itinerary} index={i} featured />
+                      <DateCard key={itinerary.id} itinerary={itinerary} index={i} />
                     ))}
                   </div>
                 </motion.section>
@@ -135,9 +135,9 @@ export default function MyDates() {
                       Sweet Memories
                     </h2>
                   </div>
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
                     {past.map((itinerary, i) => (
-                      <DateCard key={itinerary.id} itinerary={itinerary} index={i} />
+                      <DateCard key={itinerary.id} itinerary={itinerary} index={i} isPast />
                     ))}
                   </div>
                 </motion.section>
@@ -219,200 +219,138 @@ function EmptyState({ onPlan }: { onPlan: () => void }) {
 interface DateCardProps {
   itinerary: Itinerary;
   index: number;
-  featured?: boolean;
+  isPast?: boolean;
 }
 
-function DateCard({ itinerary, index, featured }: DateCardProps) {
+function DateCard({ itinerary, index, isPast }: DateCardProps) {
   const navigate = useNavigate();
-  const isPast = itinerary.status === "past";
 
   const handleView = () => {
     navigate(`/dates/${itinerary.id}`);
   };
 
-  const openYelpPage = () => {
+  const openYelpPage = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (itinerary.restaurant.yelpId) {
       window.open(`https://www.yelp.com/biz/${itinerary.restaurant.yelpId}`, '_blank');
     }
   };
 
-  if (featured) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.08 }}
-        whileHover={{ y: -2 }}
-        className="group"
-      >
-        <Card 
-          variant="elevated" 
-          className="overflow-hidden border-0 shadow-card hover:shadow-elevated transition-all duration-300 cursor-pointer"
-          onClick={handleView}
-        >
-          <CardContent className="p-0">
-            {/* Featured Image */}
-            <div className="relative h-40 overflow-hidden">
-              <img
-                src={itinerary.restaurant.photoUrl}
-                alt={itinerary.restaurant.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-              
-              {/* Date Badge */}
-              <div className="absolute top-3 left-3">
-                <div className="px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-sm shadow-sm">
-                  <p className="text-xs font-semibold text-foreground">{itinerary.date}</p>
-                </div>
-              </div>
-              
-              {/* Headline on Image */}
-              <div className="absolute bottom-0 left-0 right-0 p-4">
-                <h3 className="font-display text-xl font-bold text-white mb-1 drop-shadow-lg">
-                  {itinerary.headline}
-                </h3>
-                <div className="flex items-center gap-2 text-white/90 text-sm">
-                  <MapPin className="w-3.5 h-3.5" />
-                  <span>{itinerary.restaurant.name}</span>
-                  {itinerary.activities.length > 0 && (
-                    <>
-                      <span className="text-white/50">·</span>
-                      <span className="text-white/80">+{itinerary.activities.length} activities</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            {/* Card Body */}
-            <div className="p-4 bg-gradient-to-b from-card to-background/50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Clock className="w-4 h-4" />
-                    <span>{itinerary.timelineBlocks[0]?.time || "7:00 PM"}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">{itinerary.costEstimate}</span>
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  {itinerary.restaurant.yelpId && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-rose hover:text-rose-dark"
-                      onClick={(e) => { e.stopPropagation(); openYelpPage(); }}
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Yelp
-                    </Button>
-                  )}
-                  <Button 
-                    variant="soft" 
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleView(); }}
-                  >
-                    <Eye className="w-4 h-4" />
-                    View
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-    );
-  }
+  // Generate a gradient based on the headline/cuisine for visual variety
+  const gradients = [
+    "from-rose/20 via-rose-light/10 to-gold/20",
+    "from-gold/20 via-amber-100/10 to-rose/20",
+    "from-primary/20 via-rose/10 to-gold/20",
+    "from-rose-light/20 via-rose/10 to-primary/20",
+  ];
+  const gradient = gradients[index % gradients.length];
 
-  // Compact card for past dates
   return (
     <motion.div
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.05 }}
+      initial={{ opacity: 0, y: 15, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: index * 0.06 }}
+      whileHover={{ y: -4, scale: 1.02 }}
+      className="group"
     >
       <Card 
-        variant="elevated" 
         className={cn(
-          "overflow-hidden border-0 shadow-soft hover:shadow-card transition-all cursor-pointer",
-          isPast && "opacity-80"
+          "overflow-hidden border border-border/50 shadow-soft hover:shadow-card transition-all duration-300 cursor-pointer h-full",
+          isPast && "opacity-75"
         )}
         onClick={handleView}
       >
         <CardContent className="p-0">
-          <div className="flex gap-4">
-            {/* Thumbnail */}
-            <div className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-l-xl">
-              <img
-                src={itinerary.restaurant.photoUrl}
-                alt={itinerary.restaurant.name}
-                className={cn(
-                  "w-full h-full object-cover",
-                  isPast && "grayscale"
-                )}
-              />
+          {/* Gradient Header */}
+          <div className={cn(
+            "relative p-4 pb-6 bg-gradient-to-br",
+            gradient
+          )}>
+            {/* Date Badge */}
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium text-muted-foreground bg-background/80 backdrop-blur-sm px-2 py-1 rounded-full">
+                {itinerary.date}
+              </span>
+              {itinerary.feedback && (
+                <span className={cn(
+                  "text-lg",
+                  itinerary.feedback.rating === "great" && "animate-pulse"
+                )}>
+                  {itinerary.feedback.rating === "great" && "🎉"}
+                  {itinerary.feedback.rating === "meh" && "😐"}
+                  {itinerary.feedback.rating === "disaster" && "😬"}
+                </span>
+              )}
             </div>
-
-            {/* Content */}
-            <div className="flex-1 py-3 pr-4">
-              <div className="flex items-start justify-between mb-1">
+            
+            {/* Theme/Headline */}
+            <h3 className="font-display text-lg font-bold text-foreground leading-tight mb-1 line-clamp-2">
+              {itinerary.headline}
+            </h3>
+          </div>
+          
+          {/* Details Section */}
+          <div className="p-4 pt-3 space-y-3 bg-card">
+            {/* Restaurant */}
+            <div className="flex items-start gap-2">
+              <span className="text-base mt-0.5">🍽️</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {itinerary.restaurant.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {itinerary.restaurant.cuisine} · {itinerary.restaurant.price}
+                </p>
+              </div>
+            </div>
+            
+            {/* Activities */}
+            {itinerary.activities.length > 0 && (
+              <div className="flex items-start gap-2">
+                <span className="text-base mt-0.5">✨</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-muted-foreground mb-0.5">
-                    {itinerary.date}
+                  <p className="text-xs text-muted-foreground">
+                    +{itinerary.activities.length} {itinerary.activities.length === 1 ? 'activity' : 'activities'}
                   </p>
-                  <h3 className="font-semibold text-foreground truncate">
-                    {itinerary.headline}
-                  </h3>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {itinerary.restaurant.name}
+                  <p className="text-xs text-muted-foreground/70 truncate">
+                    {itinerary.activities.map(a => a.name).join(', ')}
                   </p>
                 </div>
-                
-                {itinerary.feedback && (
-                  <div
-                    className={cn(
-                      "px-2.5 py-1 rounded-full text-xs font-medium ml-2 shrink-0",
-                      itinerary.feedback.rating === "great" &&
-                        "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-                      itinerary.feedback.rating === "meh" &&
-                        "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-                      itinerary.feedback.rating === "disaster" &&
-                        "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                    )}
-                  >
-                    {itinerary.feedback.rating === "great" && "🎉"}
-                    {itinerary.feedback.rating === "meh" && "😐"}
-                    {itinerary.feedback.rating === "disaster" && "😬"}
-                  </div>
-                )}
               </div>
-
-              {/* Actions Row */}
-              <div className="flex items-center gap-2 mt-1">
+            )}
+            
+            {/* Time & Cost */}
+            <div className="flex items-center justify-between pt-2 border-t border-border/50">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                <span>{itinerary.timelineBlocks[0]?.time || "7:00 PM"}</span>
+              </div>
+              <span className="text-xs font-medium text-foreground">
+                {itinerary.costEstimate}
+              </span>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-1">
+              <Button 
+                variant="soft" 
+                size="sm"
+                className="flex-1 h-8 text-xs"
+                onClick={(e) => { e.stopPropagation(); handleView(); }}
+              >
+                <Eye className="w-3.5 h-3.5 mr-1" />
+                View
+              </Button>
+              {itinerary.restaurant.yelpId && (
                 <Button 
                   variant="ghost" 
-                  size="sm" 
-                  className="-ml-2 h-7 px-2 text-xs"
-                  onClick={(e) => { e.stopPropagation(); handleView(); }}
+                  size="sm"
+                  className="h-8 px-3 text-xs text-rose hover:text-rose-dark"
+                  onClick={openYelpPage}
                 >
-                  <Eye className="w-3.5 h-3.5 mr-1" />
-                  View
+                  <ExternalLink className="w-3.5 h-3.5" />
                 </Button>
-                {isPast && !itinerary.feedback && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="h-7 px-2 text-xs text-gold"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Star className="w-3.5 h-3.5 mr-1" />
-                    Review
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </CardContent>
