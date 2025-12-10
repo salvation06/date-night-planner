@@ -395,6 +395,7 @@ export const useAppStore = create<AppState>()(
             headline: it.headline,
             restaurant: {
               id: it.restaurant?.id || "",
+              yelpId: it.restaurant?.yelp_id || "",
               name: it.restaurant?.name || "Restaurant",
               photoUrl: it.restaurant?.photo_url || "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800",
               rating: it.restaurant?.rating || 4.5,
@@ -408,6 +409,7 @@ export const useAppStore = create<AppState>()(
             },
             activities: (it.activities || []).map((a: any) => ({
               id: a.id || "",
+              yelpId: a.yelp_id || "",
               name: a.name || "Activity",
               icon: a.icon || "📍",
               photoUrl: a.photo_url || "",
