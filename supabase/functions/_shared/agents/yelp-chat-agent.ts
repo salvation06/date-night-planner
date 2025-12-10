@@ -58,11 +58,14 @@ export class YelpChatAgent {
       }
 
       const data = await response.json();
-      console.log(`[${this.agentId}] Yelp AI response:`, JSON.stringify(data).substring(0, 1000));
+      console.log(`[${this.agentId}] Yelp AI response:`, JSON.stringify(data).substring(0, 2000));
 
       const aiResponse = data.message || data.response?.text || '';
       const newChatId = data.chat_id || task.conversationId || '';
-      const businesses = data.businesses || data.response?.businesses || [];
+      
+      // Extract businesses from various possible locations in response
+      const businesses = data.entities?.[0]?.businesses || data.businesses || data.response?.businesses || [];
+      console.log(`[${this.agentId}] Found ${businesses.length} businesses`);
 
       const restaurants = businesses.map((biz: any) => this.transformToRestaurant(biz));
 

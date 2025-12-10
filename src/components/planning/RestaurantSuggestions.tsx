@@ -59,7 +59,7 @@ export default function RestaurantSuggestions() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-8">
+    <div className="min-h-screen bg-background pb-32">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="px-6 py-4">
@@ -79,9 +79,6 @@ export default function RestaurantSuggestions() {
         </div>
       </div>
 
-      {/* Multi-Turn Conversation Refiner */}
-      <ConversationRefiner />
-
       {/* Restaurant Cards - Grid Layout */}
       <div className="px-6 py-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -98,6 +95,11 @@ export default function RestaurantSuggestions() {
             />
           ))}
         </div>
+      </div>
+
+      {/* Fixed Bottom: Multi-Turn Conversation Refiner */}
+      <div className="fixed bottom-0 left-0 right-0 z-50">
+        <ConversationRefiner />
       </div>
 
       {/* Reservation Info Banner */}
