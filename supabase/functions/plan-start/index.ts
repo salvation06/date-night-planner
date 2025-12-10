@@ -100,8 +100,10 @@ serve(async (req) => {
       const chatId = yelpData.chat_id;
       console.log('Yelp chat_id for follow-ups:', chatId);
       
-      const businesses = yelpData.businesses || yelpData.response?.businesses || [];
-      const aiMessage = yelpData.message || yelpData.response?.text || '';
+      // Businesses are in entities[0].businesses for the AI chat endpoint
+      const businesses = yelpData.entities?.[0]?.businesses || yelpData.businesses || [];
+      const aiMessage = yelpData.response?.text || yelpData.message || '';
+      console.log('Extracted businesses count:', businesses.length);
       
       if (businesses.length > 0) {
         restaurants = businesses.map((biz: any) => ({
