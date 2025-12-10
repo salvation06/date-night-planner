@@ -37,8 +37,16 @@ serve(async (req) => {
       });
     }
 
-    // Extract request data
-    const { prompt, location, date, time, budget } = await req.json();
+    // Extract request data - preferences may be nested object or flat
+    const body = await req.json();
+    const { prompt, preferences } = body;
+    
+    // Extract location and budget from either root level or preferences object
+    const location = body.location || preferences?.location;
+    const budget = body.budget || preferences?.budget;
+    const date = body.date || preferences?.date;
+    const time = body.time || preferences?.time;
+    
     console.log('Plan start request:', { prompt, location, date, time, budget, userId: user.id });
 
     // Delegate to Agent Orchestrator
