@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronLeft, MapPin, Share2, Sparkles, Star, ExternalLink } from "lucide-react";
+import { ChevronLeft, Share2, Sparkles, Star, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppStore } from "@/stores/appStore";
@@ -40,9 +40,18 @@ export default function DateDetail() {
     }
   };
 
-  const openDirections = (address: string) => {
-    const encoded = encodeURIComponent(address);
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`, '_blank');
+  // Get Yelp ID for a timeline block by matching title to restaurant or activities
+  const getYelpIdForBlock = (blockTitle: string): string | null => {
+    if (!itinerary) return null;
+    if (itinerary.restaurant.name === blockTitle) {
+      return itinerary.restaurant.yelpId || null;
+    }
+    const activity = itinerary.activities.find(a => a.name === blockTitle);
+    return activity?.yelpId || null;
+  };
+
+  const openYelpPage = (yelpId: string) => {
+    window.open(`https://www.yelp.com/biz/${yelpId}`, '_blank');
   };
 
   if (isLoading) {
@@ -126,20 +135,17 @@ export default function DateDetail() {
                       {block.subtitle}
                     </p>
                     {block.extra && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <MapPin className="w-3.5 h-3.5" />
-                        <span>{block.extra}</span>
-                      </div>
+                      <p className="text-sm text-muted-foreground">{block.extra}</p>
                     )}
-                    {block.hasLocation && block.extra && (
+                    {getYelpIdForBlock(block.title) && (
                       <Button
                         variant="ghost"
                         size="sm"
                         className="mt-2 -ml-2 text-rose"
-                        onClick={() => openDirections(block.extra!)}
+                        onClick={() => openYelpPage(getYelpIdForBlock(block.title)!)}
                       >
-                        <MapPin className="w-4 h-4" />
-                        Get Directions
+                        <ExternalLink className="w-4 h-4" />
+                        View on Yelp
                       </Button>
                     )}
                   </CardContent>
@@ -180,21 +186,10 @@ export default function DateDetail() {
 
       {/* Bottom Actions */}
       <div className="fixed bottom-20 left-0 right-0 p-6 bg-background/95 backdrop-blur-sm border-t border-border">
-        <div className="flex gap-3">
-          <Button variant="outline" size="lg" className="flex-1" onClick={handleShare}>
-            <Share2 className="w-4 h-4" />
-            Share
-          </Button>
-          <Button
-            variant="romantic"
-            size="lg"
-            className="flex-1"
-            onClick={() => openDirections(itinerary.restaurant.address)}
-          >
-            <ExternalLink className="w-4 h-4" />
-            Get Directions
-          </Button>
-        </div>
+        <Button variant="outline" size="lg" className="w-full" onClick={handleShare}>
+          <Share2 className="w-4 h-4" />
+          Share This Date
+        </Button>
       </div>
     </div>
   );
