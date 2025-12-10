@@ -27,6 +27,7 @@ interface AppState {
   conversationId: string | null;
   conversationHistory: ConversationMessage[];
   isRefining: boolean;
+  aiResponse: string | null; // Latest AI response text from Yelp
   startPlanning: (prompt: string) => Promise<void>;
   refineSearch: (message: string) => Promise<void>;
   setSessionStage: (stage: PlanningSession["stage"]) => void;
@@ -57,6 +58,7 @@ export const useAppStore = create<AppState>()(
       conversationId: null,
       conversationHistory: [],
       isRefining: false,
+      aiResponse: null,
 
       // Profile actions
       setProfile: (updates) =>
@@ -193,7 +195,7 @@ export const useAppStore = create<AppState>()(
         if (!state.currentSession?.id) return;
 
         try {
-          set({ isRefining: true, error: null });
+          set({ isRefining: true, error: null, aiResponse: null });
 
           // Add user message to history
           const userMessage: ConversationMessage = {
@@ -214,21 +216,27 @@ export const useAppStore = create<AppState>()(
             state.profile?.location
           );
 
-          // Add assistant response to history
-          if (result.ai_response) {
+          console.log('[refineSearch] Yelp response:', result);
+
+          // Extract AI response text from response.text or ai_response
+          const aiResponseText = result.response?.text || result.ai_response || null;
+          
+          // Add assistant response to history and set aiResponse
+          if (aiResponseText) {
             const assistantMessage: ConversationMessage = {
               role: 'assistant',
-              content: result.ai_response,
+              content: aiResponseText,
               timestamp: Date.now(),
             };
             set((s) => ({
               conversationHistory: [...s.conversationHistory, assistantMessage],
+              aiResponse: aiResponseText,
             }));
           }
 
           // Update conversation ID for multi-turn
-          if (result.conversation_id) {
-            set({ conversationId: result.conversation_id });
+          if (result.conversation_id || result.chat_id) {
+            set({ conversationId: result.conversation_id || result.chat_id });
           }
 
           // Update restaurants if new ones returned
@@ -474,6 +482,7 @@ export const useAppStore = create<AppState>()(
         conversationId: null,
         conversationHistory: [],
         isRefining: false,
+        aiResponse: null,
       }),
 
       loadItineraries: async () => {

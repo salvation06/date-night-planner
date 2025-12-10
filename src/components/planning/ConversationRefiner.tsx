@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Loader2, Sparkles, Mic, MicOff, ChevronUp, ChevronDown } from "lucide-react";
+import { Send, Loader2, Sparkles, Mic, MicOff, ChevronUp, ChevronDown, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/stores/appStore";
@@ -21,6 +21,7 @@ export default function ConversationRefiner() {
   const { 
     isRefining, 
     refineSearch,
+    aiResponse,
   } = useAppStore();
   
   const [input, setInput] = useState("");
@@ -51,7 +52,6 @@ export default function ConversationRefiner() {
     
     try {
       await refineSearch(message);
-      toast.success("Results updated based on your request");
     } catch (error) {
       toast.error("Failed to refine search. Please try again.");
     }
@@ -67,7 +67,6 @@ export default function ConversationRefiner() {
     
     try {
       await refineSearch(suggestion);
-      toast.success("Results updated based on your request");
     } catch (error) {
       toast.error("Failed to refine search. Please try again.");
     }
@@ -83,7 +82,7 @@ export default function ConversationRefiner() {
         >
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold">Refine Your Search</span>
+            <span className="text-sm font-semibold">Refine Your Search with Yelp AI</span>
           </div>
           {isExpanded ? (
             <ChevronUp className="w-5 h-5 text-muted-foreground" />
@@ -91,6 +90,25 @@ export default function ConversationRefiner() {
             <ChevronDown className="w-5 h-5 text-muted-foreground" />
           )}
         </button>
+
+        {/* AI Response Display */}
+        <AnimatePresence>
+          {aiResponse && !isRefining && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-3 p-3 rounded-lg bg-primary/5 border border-primary/20"
+            >
+              <div className="flex gap-2">
+                <MessageSquare className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <p className="text-sm text-foreground/90 leading-relaxed">
+                  {aiResponse}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Expanded Content */}
         <AnimatePresence>
@@ -170,7 +188,7 @@ export default function ConversationRefiner() {
                   ref={inputRef}
                   value={isListening ? interimTranscript || input : input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={isListening ? "Listening..." : "Ask a follow-up... e.g., 'Something with a view?'"}
+                  placeholder={isListening ? "Listening..." : "Ask Yelp AI... e.g., 'Something with a view?'"}
                   disabled={isRefining || isListening}
                   className="flex-1 bg-background/50"
                 />
@@ -200,7 +218,7 @@ export default function ConversationRefiner() {
               className="mt-2 flex items-center justify-center gap-2 text-sm text-primary"
             >
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Searching for better options...</span>
+              <span>Asking Yelp AI for better options...</span>
             </motion.div>
           )}
         </AnimatePresence>
