@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Star, MapPin, Clock, ChevronLeft, Heart, Check, Loader2, CalendarCheck, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAppStore } from "@/stores/appStore";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -253,24 +254,22 @@ function RestaurantCard({
                 <Clock className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium">Select a Time</span>
               </div>
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                {restaurant.availableTimes.map((time) => (
-                  <button
-                    key={time}
-                    onClick={() => setSelectedTime(time)}
-                    disabled={isBooking}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-                      selectedTime === time 
-                        ? "bg-primary text-primary-foreground shadow-soft" 
-                        : "bg-secondary hover:bg-secondary/80 text-secondary-foreground",
-                      isBooking && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    {time}
-                  </button>
-                ))}
-              </div>
+              <Select
+                value={selectedTime || ""}
+                onValueChange={setSelectedTime}
+                disabled={isBooking}
+              >
+                <SelectTrigger className="w-full mb-4">
+                  <SelectValue placeholder="Choose a reservation time" />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  {restaurant.availableTimes.map((time) => (
+                    <SelectItem key={time} value={time}>
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               
               {/* Reserve Button */}
               <Button
