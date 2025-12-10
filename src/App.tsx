@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useAppStore } from "@/stores/appStore";
+
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Auth from "@/pages/Auth";
@@ -20,7 +20,6 @@ const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
-  const { isOnboarded } = useAppStore();
 
   if (loading) {
     return (
@@ -39,10 +38,6 @@ function ProtectedRoutes() {
     return <Navigate to="/auth" replace />;
   }
 
-  if (!isOnboarded) {
-    return <Navigate to="/onboarding" replace />;
-  }
-
   return (
     <Routes>
       <Route element={<AppLayout />}>
@@ -59,7 +54,6 @@ function ProtectedRoutes() {
 
 function AppRoutes() {
   const { user, loading } = useAuth();
-  const { isOnboarded } = useAppStore();
 
   if (loading) {
     return (
@@ -76,19 +70,8 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
-      <Route
-        path="/onboarding"
-        element={
-          !user ? (
-            <Navigate to="/auth" replace />
-          ) : isOnboarded ? (
-            <Navigate to="/plan" replace />
-          ) : (
-            <Onboarding />
-          )
-        }
-      />
+      <Route path="/auth" element={user ? <Navigate to="/plan" replace /> : <Auth />} />
+      <Route path="/onboarding" element={<Navigate to="/plan" replace />} />
       <Route path="/*" element={<ProtectedRoutes />} />
     </Routes>
   );

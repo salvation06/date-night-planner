@@ -24,10 +24,10 @@ export default function LocationPicker({ value, onChange, className }: LocationP
   } = useGeolocation();
 
   useEffect(() => {
-    if (address && !value) {
+    if (address) {
       onChange(address);
     }
-  }, [address, value, onChange]);
+  }, [address, onChange]);
 
   const handleAutoLocate = async () => {
     await getCurrentLocation();
