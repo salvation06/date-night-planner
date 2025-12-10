@@ -128,7 +128,12 @@ interface DateCardProps {
 }
 
 function DateCard({ itinerary, index }: DateCardProps) {
+  const navigate = useNavigate();
   const isPast = itinerary.status === "past";
+
+  const handleView = () => {
+    navigate(`/dates/${itinerary.id}`);
+  };
 
   return (
     <motion.div
@@ -188,7 +193,7 @@ function DateCard({ itinerary, index }: DateCardProps) {
 
               {/* Actions */}
               <div className="flex gap-2 mt-2">
-                <Button variant="ghost" size="sm" className="-ml-2">
+                <Button variant="ghost" size="sm" className="-ml-2" onClick={handleView}>
                   <Eye className="w-4 h-4" />
                   View
                 </Button>

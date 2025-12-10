@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Send, Sparkles, Target, MessageSquare } from "lucide-react";
+import { Mic, Send, Sparkles, Target, MessageSquare, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAppStore } from "@/stores/appStore";
 import RestaurantSuggestions from "@/components/planning/RestaurantSuggestions";
 import ActivitySuggestions from "@/components/planning/ActivitySuggestions";
@@ -12,6 +14,7 @@ import LocationPicker from "@/components/planning/LocationPicker";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 const suggestions = [
   "Romantic Italian in Brooklyn",
@@ -27,6 +30,7 @@ export default function PlanDate() {
   const [prompt, setPrompt] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("quick");
   const [userLocation, setUserLocation] = useState(profile?.location || "");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
   // Sync location with profile
   useEffect(() => {
@@ -190,17 +194,45 @@ export default function PlanDate() {
               )}
             </AnimatePresence>
 
-            {/* Location Picker */}
+            {/* Location and Date Picker */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="px-6 mb-6"
+              className="px-6 mb-6 space-y-4"
             >
               <LocationPicker
                 value={userLocation}
                 onChange={setUserLocation}
               />
+              
+              {/* Date Picker */}
+              <div className="flex items-center gap-3">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "flex-1 justify-start text-left font-normal",
+                        !selectedDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate ? format(selectedDate, "EEEE, MMMM d, yyyy") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </motion.div>
 
             {/* Input Area - only show after location is set */}

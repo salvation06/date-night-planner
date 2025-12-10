@@ -10,6 +10,7 @@ import Auth from "@/pages/Auth";
 import Onboarding from "@/pages/Onboarding";
 import PlanDate from "@/pages/PlanDate";
 import MyDates from "@/pages/MyDates";
+import DateDetail from "@/pages/DateDetail";
 import Profile from "@/pages/Profile";
 import NotFound from "./pages/NotFound";
 import { Heart } from "lucide-react";
@@ -48,6 +49,7 @@ function ProtectedRoutes() {
         <Route path="/" element={<Navigate to="/plan" replace />} />
         <Route path="/plan" element={<PlanDate />} />
         <Route path="/dates" element={<MyDates />} />
+        <Route path="/dates/:id" element={<DateDetail />} />
         <Route path="/profile" element={<Profile />} />
       </Route>
       <Route path="*" element={<NotFound />} />

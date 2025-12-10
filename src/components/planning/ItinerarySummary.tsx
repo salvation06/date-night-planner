@@ -45,7 +45,19 @@ export default function ItinerarySummary() {
                     <div className="flex items-start justify-between mb-1"><h3 className="font-semibold">{block.title}</h3><span className="text-sm font-medium text-rose">{block.time}</span></div>
                     <p className="text-sm text-muted-foreground mb-2">{block.subtitle}</p>
                     {block.extra && <div className="flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="w-3.5 h-3.5" /><span>{block.extra}</span></div>}
-                    {block.hasLocation && <Button variant="ghost" size="sm" className="mt-2 -ml-2 text-rose"><MapPin className="w-4 h-4" />Get Directions</Button>}
+                    {block.hasLocation && block.extra && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="mt-2 -ml-2 text-rose"
+                        onClick={() => {
+                          const address = encodeURIComponent(block.extra || '');
+                          window.open(`https://www.google.com/maps/dir/?api=1&destination=${address}`, '_blank');
+                        }}
+                      >
+                        <MapPin className="w-4 h-4" />Get Directions
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
