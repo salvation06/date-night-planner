@@ -18,7 +18,7 @@ import { motion } from "framer-motion";
 
 const queryClient = new QueryClient();
 
-function ProtectedRoutes() {
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -38,18 +38,7 @@ function ProtectedRoutes() {
     return <Navigate to="/auth" replace />;
   }
 
-  return (
-    <Routes>
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<Navigate to="/plan" replace />} />
-        <Route path="/plan" element={<PlanDate />} />
-        <Route path="/dates" element={<MyDates />} />
-        <Route path="/dates/:id" element={<DateDetail />} />
-        <Route path="/profile" element={<Profile />} />
-      </Route>
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
+  return <>{children}</>;
 }
 
 function AppRoutes() {
@@ -72,7 +61,18 @@ function AppRoutes() {
     <Routes>
       <Route path="/auth" element={user ? <Navigate to="/plan" replace /> : <Auth />} />
       <Route path="/onboarding" element={<Navigate to="/plan" replace />} />
-      <Route path="/*" element={<ProtectedRoutes />} />
+      <Route element={
+        <ProtectedRoute>
+          <AppLayout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<Navigate to="/plan" replace />} />
+        <Route path="/plan" element={<PlanDate />} />
+        <Route path="/dates" element={<MyDates />} />
+        <Route path="/dates/:id" element={<DateDetail />} />
+        <Route path="/profile" element={<Profile />} />
+      </Route>
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
