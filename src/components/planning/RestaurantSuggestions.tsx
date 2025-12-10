@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAppStore } from "@/stores/appStore";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import ConversationRefiner from "./ConversationRefiner";
 import type { Restaurant } from "@/types";
 
 interface ReservationState {
@@ -77,6 +78,9 @@ export default function RestaurantSuggestions() {
           )}
         </div>
       </div>
+
+      {/* Multi-Turn Conversation Refiner */}
+      <ConversationRefiner />
 
       {/* Restaurant Cards - Grid Layout */}
       <div className="px-6 py-6">

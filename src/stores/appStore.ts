@@ -3,6 +3,12 @@ import { persist } from "zustand/middleware";
 import type { UserProfile, Itinerary, PlanningSession, Restaurant, Activity } from "@/types";
 import * as api from "@/lib/api";
 
+interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+}
+
 interface AppState {
   // User profile
   profile: UserProfile | null;
@@ -18,7 +24,11 @@ interface AppState {
   currentSession: PlanningSession | null;
   restaurants: Restaurant[];
   activities: Activity[];
+  conversationId: string | null;
+  conversationHistory: ConversationMessage[];
+  isRefining: boolean;
   startPlanning: (prompt: string) => Promise<void>;
+  refineSearch: (message: string) => Promise<void>;
   setSessionStage: (stage: PlanningSession["stage"]) => void;
   selectRestaurant: (restaurant: Restaurant, time: string) => Promise<void>;
   toggleActivity: (activity: Activity) => void;
@@ -44,6 +54,9 @@ export const useAppStore = create<AppState>()(
       restaurants: [],
       activities: [] as Activity[],
       itineraries: [],
+      conversationId: null,
+      conversationHistory: [],
+      isRefining: false,
 
       // Profile actions
       setProfile: (updates) =>
@@ -172,6 +185,78 @@ export const useAppStore = create<AppState>()(
             error: error instanceof Error ? error.message : "Failed to start planning",
             currentSession: null 
           });
+        }
+      },
+
+      refineSearch: async (message) => {
+        const state = get();
+        if (!state.currentSession?.id) return;
+
+        try {
+          set({ isRefining: true, error: null });
+
+          // Add user message to history
+          const userMessage: ConversationMessage = {
+            role: 'user',
+            content: message,
+            timestamp: Date.now(),
+          };
+
+          set((s) => ({
+            conversationHistory: [...s.conversationHistory, userMessage],
+          }));
+
+          // Call Yelp Chat API with conversation context
+          const result = await api.sendYelpChatMessage(
+            message,
+            state.conversationId || undefined,
+            state.currentSession?.id,
+            state.profile?.location
+          );
+
+          // Add assistant response to history
+          if (result.ai_response) {
+            const assistantMessage: ConversationMessage = {
+              role: 'assistant',
+              content: result.ai_response,
+              timestamp: Date.now(),
+            };
+            set((s) => ({
+              conversationHistory: [...s.conversationHistory, assistantMessage],
+            }));
+          }
+
+          // Update conversation ID for multi-turn
+          if (result.conversation_id) {
+            set({ conversationId: result.conversation_id });
+          }
+
+          // Update restaurants if new ones returned
+          if (result.restaurants && result.restaurants.length > 0) {
+            const restaurants: Restaurant[] = result.restaurants.map((r: any) => ({
+              id: r.id || r.yelp_id,
+              yelpId: r.yelp_id,
+              name: r.name,
+              photoUrl: r.photo_url || "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800",
+              rating: r.rating || 4.5,
+              price: r.price || "$$",
+              cuisine: r.cuisine || "Restaurant",
+              tags: r.tags || [],
+              whyThisWorks: r.why_this_works || "Great choice for your date!",
+              availableTimes: r.available_times || ["6:00 PM", "7:00 PM", "8:00 PM"],
+              address: r.address || "",
+              distance: r.distance || "",
+              latitude: r.latitude,
+              longitude: r.longitude,
+            }));
+
+            set({ restaurants });
+          }
+        } catch (error) {
+          console.error("Failed to refine search:", error);
+          set({ error: error instanceof Error ? error.message : "Failed to refine search" });
+        } finally {
+          set({ isRefining: false });
         }
       },
 
@@ -382,7 +467,14 @@ export const useAppStore = create<AppState>()(
         }
       },
 
-      resetSession: () => set({ currentSession: null, restaurants: [], activities: [] }),
+      resetSession: () => set({ 
+        currentSession: null, 
+        restaurants: [], 
+        activities: [],
+        conversationId: null,
+        conversationHistory: [],
+        isRefining: false,
+      }),
 
       loadItineraries: async () => {
         try {
