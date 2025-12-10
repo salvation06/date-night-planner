@@ -17,14 +17,10 @@ export function AppLayout() {
   const { signOut } = useAuth();
 
   const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast.success("Signed out successfully");
-      navigate("/auth", { replace: true });
-    } catch (error) {
-      console.error("Sign out error:", error);
-      toast.error("Failed to sign out");
-    }
+    // Sign out and navigate immediately - don't wait for API
+    await signOut();
+    toast.success("Signed out successfully");
+    navigate("/auth", { replace: true });
   };
 
   return (
