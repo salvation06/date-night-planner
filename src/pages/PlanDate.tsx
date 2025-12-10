@@ -42,7 +42,7 @@ type ViewMode = "quick" | "conversation";
 export default function PlanDate() {
   const { currentSession, startPlanning, resetSession, profile, setProfile } = useAppStore();
   const [prompt, setPrompt] = useState("");
-  const [viewMode, setViewMode] = useState<ViewMode>("quick");
+  const [viewMode, setViewMode] = useState<ViewMode>("conversation");
   const [userLocation, setUserLocation] = useState(profile?.location || "");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -346,6 +346,13 @@ export default function PlanDate() {
             exit={{ opacity: 0, x: 20 }}
             className="flex-1 flex flex-col min-h-0"
           >
+            {/* Location Picker for AI Chat */}
+            <div className="px-6 mb-4">
+              <LocationPicker
+                value={userLocation}
+                onChange={setUserLocation}
+              />
+            </div>
             <VoiceSearchInterface
               onSelectRestaurant={handleConversationRestaurantSelect}
               location={userLocation || profile?.location}
