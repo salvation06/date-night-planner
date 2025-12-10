@@ -210,7 +210,7 @@ export const useAppStore = create<AppState>()(
           }, time);
 
           const activities: Activity[] = (result.activities || []).map((a: any) => ({
-            id: a.id,
+            id: a.id || a.yelp_id,
             yelpId: a.yelp_id,
             name: a.name,
             icon: a.icon || "📍",
@@ -262,7 +262,7 @@ export const useAppStore = create<AppState>()(
         }
 
         try {
-          await api.selectActivity(session.id, []);
+          await api.selectActivity(session.id, [], true);
           set((state) => ({
             currentSession: state.currentSession
               ? { ...state.currentSession, selectedActivities: [], stage: "summary" }
@@ -282,10 +282,20 @@ export const useAppStore = create<AppState>()(
           
           // If we have a backend session, confirm via API
           if (session.id) {
-            // First select activities if any
-            const activityIds = session.selectedActivities.map((a) => a.id);
-            if (activityIds.length > 0) {
-              await api.selectActivity(session.id, activityIds);
+            // First select activities with full data including time_window
+            const activitiesData = session.selectedActivities.map((a) => ({
+              id: a.id,
+              yelp_id: a.yelpId,
+              name: a.name,
+              icon: a.icon,
+              category: a.category,
+              time_window: a.timeWindow,
+              walking_minutes: a.walkingMinutes,
+              rating: a.rating,
+              address: a.address,
+            }));
+            if (activitiesData.length > 0) {
+              await api.selectActivity(session.id, activitiesData, false);
             }
             
             const result = await api.confirmItinerary(session.id);

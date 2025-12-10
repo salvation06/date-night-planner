@@ -37,10 +37,25 @@ serve(async (req) => {
     const { session_id, activities, skip } = await req.json();
     console.log('Activity selection:', { session_id, activities: activities?.length || 0, skip });
 
+    // Store activities with proper snake_case fields for backend consistency
+    const formattedActivities = skip ? [] : (activities || []).map((a: any) => ({
+      id: a.id,
+      yelp_id: a.yelp_id,
+      name: a.name,
+      icon: a.icon,
+      category: a.category,
+      time_window: a.time_window || a.timeWindow, // Handle both formats
+      walking_minutes: a.walking_minutes || a.walkingMinutes,
+      rating: a.rating,
+      address: a.address,
+    }));
+
+    console.log('Formatted activities for storage:', formattedActivities);
+
     const { error: updateError } = await supabase
       .from('planning_sessions')
       .update({
-        selected_activities: skip ? [] : activities,
+        selected_activities: formattedActivities,
         stage: 'summary',
       })
       .eq('id', session_id)
@@ -54,6 +69,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       session_id,
       stage: 'summary',
+      activities: formattedActivities,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
