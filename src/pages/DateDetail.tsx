@@ -186,10 +186,16 @@ export default function DateDetail() {
 
       {/* Bottom Actions */}
       <div className="fixed bottom-20 left-0 right-0 p-6 bg-background/95 backdrop-blur-sm border-t border-border">
-        <Button variant="outline" size="lg" className="w-full" onClick={handleShare}>
-          <Share2 className="w-4 h-4" />
-          Share This Date
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="outline" size="lg" className="flex-1" onClick={handleShare}>
+            <Share2 className="w-4 h-4" />
+            Share
+          </Button>
+          <Button variant="romantic" size="lg" className="flex-1" onClick={() => navigate("/plan")}>
+            <Sparkles className="w-4 h-4" />
+            Plan New Date
+          </Button>
+        </div>
       </div>
     </div>
   );
