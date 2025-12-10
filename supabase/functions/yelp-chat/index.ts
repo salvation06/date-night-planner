@@ -82,8 +82,8 @@ serve(async (req) => {
     console.log('[yelp-chat] Auth took:', Date.now() - startTime, 'ms');
 
     // Extract request data
-    const { message, conversation_id, session_id, location } = await req.json();
-    console.log('[yelp-chat] Request:', { message, conversation_id, location });
+    const { message, session_id, location } = await req.json();
+    console.log('[yelp-chat] Request:', { message, session_id, location });
 
     // Get user profile for location context
     const { data: profile } = await supabase
@@ -94,21 +94,22 @@ serve(async (req) => {
 
     const userLocation = location || profile?.location || 'New York, NY';
 
-    // Build a more specific query for better results
-    const searchQuery = `Find restaurants: ${message}. Must be in or near ${userLocation}. Show different options than before.`;
+    // Build a unique query with timestamp to ensure fresh results
+    const timestamp = Date.now();
+    const randomizer = Math.random().toString(36).substring(7);
+    const searchQuery = `Find new and different restaurants for: ${message}. Location: ${userLocation}. Give me unique options I haven't seen. (ref: ${randomizer})`;
     
-    // Build the Yelp AI API v2 request
+    console.log('[yelp-chat] Search query:', searchQuery);
+    
+    // Build the Yelp AI API v2 request - always start fresh conversation for varied results
     const yelpChatRequest: Record<string, any> = {
       query: searchQuery,
       request_context: {
         return_businesses: true,
       }
     };
-
-    // Include chat_id for multi-turn conversations to get different results
-    if (conversation_id) {
-      yelpChatRequest.chat_id = conversation_id;
-    }
+    
+    // Don't include chat_id - we want fresh results each time
 
     console.log('[yelp-chat] Calling Yelp AI...');
     const yelpStartTime = Date.now();
@@ -142,7 +143,7 @@ serve(async (req) => {
         error: 'Yelp API request failed',
         ai_response: `I couldn't reach Yelp right now (${errorMsg}). Please try again.`,
         restaurants: [],
-        conversation_id: conversation_id || '',
+        conversation_id: '',
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -157,7 +158,7 @@ serve(async (req) => {
         ai_response: 'Yelp returned an error. Please try a different search.',
         details: errorText,
         restaurants: [],
-        conversation_id: conversation_id || '',
+        conversation_id: '',
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -169,7 +170,7 @@ serve(async (req) => {
 
     // Extract response data from v2 API structure
     const aiResponse = yelpData.message || yelpData.response?.text || 'Here are some options based on your request:';
-    const newChatId = yelpData.chat_id || conversation_id || crypto.randomUUID();
+    const newChatId = yelpData.chat_id || crypto.randomUUID();
     
     // Extract businesses from various possible locations in the response
     let businesses = yelpData.entities?.[0]?.businesses || yelpData.businesses || yelpData.response?.businesses || [];
