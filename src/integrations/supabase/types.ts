@@ -14,7 +14,256 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_options: {
+        Row: {
+          address: string | null
+          category: string | null
+          created_at: string | null
+          icon: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          name: string
+          photo_url: string | null
+          rating: number | null
+          session_id: string | null
+          time_window: string | null
+          walking_minutes: number | null
+          why_this_works: string | null
+          yelp_id: string
+        }
+        Insert: {
+          address?: string | null
+          category?: string | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          photo_url?: string | null
+          rating?: number | null
+          session_id?: string | null
+          time_window?: string | null
+          walking_minutes?: number | null
+          why_this_works?: string | null
+          yelp_id: string
+        }
+        Update: {
+          address?: string | null
+          category?: string | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          photo_url?: string | null
+          rating?: number | null
+          session_id?: string | null
+          time_window?: string | null
+          walking_minutes?: number | null
+          why_this_works?: string | null
+          yelp_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_options_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "planning_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itineraries: {
+        Row: {
+          activities: Json | null
+          cost_estimate: string | null
+          created_at: string | null
+          date_label: string
+          feedback_comment: string | null
+          feedback_rating: string | null
+          headline: string
+          id: string
+          restaurant: Json
+          share_url: string | null
+          status: string | null
+          timeline_blocks: Json | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          activities?: Json | null
+          cost_estimate?: string | null
+          created_at?: string | null
+          date_label: string
+          feedback_comment?: string | null
+          feedback_rating?: string | null
+          headline: string
+          id?: string
+          restaurant: Json
+          share_url?: string | null
+          status?: string | null
+          timeline_blocks?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          activities?: Json | null
+          cost_estimate?: string | null
+          created_at?: string | null
+          date_label?: string
+          feedback_comment?: string | null
+          feedback_rating?: string | null
+          headline?: string
+          id?: string
+          restaurant?: Json
+          share_url?: string | null
+          status?: string | null
+          timeline_blocks?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      planning_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          parsed_intent: Json | null
+          selected_activities: Json | null
+          selected_restaurant: Json | null
+          selected_time: string | null
+          stage: string | null
+          updated_at: string | null
+          user_id: string | null
+          user_prompt: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          parsed_intent?: Json | null
+          selected_activities?: Json | null
+          selected_restaurant?: Json | null
+          selected_time?: string | null
+          stage?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          user_prompt: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          parsed_intent?: Json | null
+          selected_activities?: Json | null
+          selected_restaurant?: Json | null
+          selected_time?: string | null
+          stage?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          user_prompt?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          budget: string | null
+          created_at: string | null
+          dietary: string[] | null
+          id: string
+          location: string | null
+          updated_at: string | null
+          user_id: string | null
+          vibe_tags: string[] | null
+        }
+        Insert: {
+          budget?: string | null
+          created_at?: string | null
+          dietary?: string[] | null
+          id?: string
+          location?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          vibe_tags?: string[] | null
+        }
+        Update: {
+          budget?: string | null
+          created_at?: string | null
+          dietary?: string[] | null
+          id?: string
+          location?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          vibe_tags?: string[] | null
+        }
+        Relationships: []
+      }
+      restaurant_options: {
+        Row: {
+          address: string | null
+          available_times: string[] | null
+          created_at: string | null
+          cuisine: string | null
+          distance: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          name: string
+          photo_url: string | null
+          price: string | null
+          rating: number | null
+          session_id: string | null
+          tags: string[] | null
+          why_this_works: string | null
+          yelp_id: string
+        }
+        Insert: {
+          address?: string | null
+          available_times?: string[] | null
+          created_at?: string | null
+          cuisine?: string | null
+          distance?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          photo_url?: string | null
+          price?: string | null
+          rating?: number | null
+          session_id?: string | null
+          tags?: string[] | null
+          why_this_works?: string | null
+          yelp_id: string
+        }
+        Update: {
+          address?: string | null
+          available_times?: string[] | null
+          created_at?: string | null
+          cuisine?: string | null
+          distance?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          photo_url?: string | null
+          price?: string | null
+          rating?: number | null
+          session_id?: string | null
+          tags?: string[] | null
+          why_this_works?: string | null
+          yelp_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_options_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "planning_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
