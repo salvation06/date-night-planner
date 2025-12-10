@@ -1,151 +1,35 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { UserProfile, Itinerary, PlanningSession, Restaurant, Activity } from "@/types";
-
-// Mock restaurants data
-const mockRestaurants: Restaurant[] = [
-  {
-    id: "1",
-    name: "Lilia",
-    photoUrl: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800",
-    rating: 4.8,
-    price: "$$$",
-    cuisine: "Italian",
-    tags: ["Romantic", "Pasta", "Wine Bar"],
-    whyThisWorks: "Perfect for impressing — Michelin-starred pasta in a stunning converted auto body shop. The housemade mafaldini is legendary.",
-    availableTimes: ["6:30 PM", "7:00 PM", "8:30 PM", "9:00 PM"],
-    address: "567 Union Ave, Brooklyn",
-    distance: "0.8 mi",
-  },
-  {
-    id: "2",
-    name: "Le Bernardin",
-    photoUrl: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800",
-    rating: 4.9,
-    price: "$$$$",
-    cuisine: "French Seafood",
-    tags: ["Fine Dining", "Seafood", "Romantic"],
-    whyThisWorks: "Three Michelin stars of pure elegance. The tasting menu is a love letter to the ocean. Guaranteed to impress.",
-    availableTimes: ["5:30 PM", "6:00 PM", "8:00 PM"],
-    address: "155 W 51st St, Manhattan",
-    distance: "2.1 mi",
-  },
-  {
-    id: "3",
-    name: "Rezdôra",
-    photoUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800",
-    rating: 4.7,
-    price: "$$$",
-    cuisine: "Italian",
-    tags: ["Cozy", "Pasta", "Intimate"],
-    whyThisWorks: "Emilia-Romagna magic in the Flatiron. Hand-rolled tortellini in an intimate space perfect for conversation.",
-    availableTimes: ["6:00 PM", "7:30 PM", "8:00 PM", "9:30 PM"],
-    address: "27 E 20th St, Manhattan",
-    distance: "1.5 mi",
-  },
-  {
-    id: "4",
-    name: "Laser Wolf",
-    photoUrl: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800",
-    rating: 4.6,
-    price: "$$",
-    cuisine: "Israeli",
-    tags: ["Rooftop", "Lively", "Shared Plates"],
-    whyThisWorks: "Rooftop vibes with incredible grilled meats and mezze. Fun, shareable plates that spark conversation.",
-    availableTimes: ["5:30 PM", "6:30 PM", "7:00 PM", "8:30 PM"],
-    address: "97 Wythe Ave, Brooklyn",
-    distance: "1.2 mi",
-  },
-];
-
-// Mock activities data
-const mockActivities: Activity[] = [
-  {
-    id: "a1",
-    name: "Nitehawk Cinema",
-    icon: "🎬",
-    photoUrl: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800",
-    rating: 4.7,
-    category: "Movies",
-    walkingMinutes: 8,
-    whyThisWorks: "Dinner and drinks served during the movie. Perfect for a low-pressure post-dinner activity.",
-    address: "136 Metropolitan Ave",
-    timeWindow: "after",
-  },
-  {
-    id: "a2",
-    name: "Westlight",
-    icon: "🍸",
-    photoUrl: "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=800",
-    rating: 4.8,
-    category: "Rooftop Bar",
-    walkingMinutes: 12,
-    whyThisWorks: "Panoramic Manhattan views from the 22nd floor. Craft cocktails with a romantic skyline backdrop.",
-    address: "111 N 12th St",
-    timeWindow: "after",
-  },
-  {
-    id: "a3",
-    name: "POWERHOUSE Arena",
-    icon: "📚",
-    photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800",
-    rating: 4.5,
-    category: "Bookstore",
-    walkingMinutes: 6,
-    whyThisWorks: "Browse together before dinner. Indie bookstore with great art books and cozy vibes.",
-    address: "28 Adams St",
-    timeWindow: "before",
-  },
-  {
-    id: "a4",
-    name: "Brooklyn Comedy Collective",
-    icon: "😂",
-    photoUrl: "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?w=800",
-    rating: 4.6,
-    category: "Comedy Club",
-    walkingMinutes: 10,
-    whyThisWorks: "Shared laughs build connection. Intimate venue with top local and touring comedians.",
-    address: "566 Johnson Ave",
-    timeWindow: "after",
-  },
-  {
-    id: "a5",
-    name: "Brooklyn Winery",
-    icon: "🍷",
-    photoUrl: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=800",
-    rating: 4.4,
-    category: "Wine Tasting",
-    walkingMinutes: 5,
-    whyThisWorks: "Urban winery with tastings and tours. A sophisticated pre-dinner activity to set the mood.",
-    address: "213 N 8th St",
-    timeWindow: "before",
-  },
-];
+import * as api from "@/lib/api";
 
 interface AppState {
   // User profile
   profile: UserProfile | null;
   isOnboarded: boolean;
+  isLoading: boolean;
+  error: string | null;
   setProfile: (profile: Partial<UserProfile>) => void;
   completeOnboarding: () => void;
+  loadProfile: () => Promise<void>;
+  saveProfile: (profile: Partial<UserProfile>) => Promise<void>;
 
   // Planning session
   currentSession: PlanningSession | null;
-  startPlanning: (prompt: string) => void;
-  setSessionStage: (stage: PlanningSession["stage"]) => void;
-  selectRestaurant: (restaurant: Restaurant, time: string) => void;
-  toggleActivity: (activity: Activity) => void;
-  skipActivities: () => void;
-  confirmItinerary: () => void;
-  resetSession: () => void;
-
-  // Mock data
   restaurants: Restaurant[];
   activities: Activity[];
+  startPlanning: (prompt: string) => Promise<void>;
+  setSessionStage: (stage: PlanningSession["stage"]) => void;
+  selectRestaurant: (restaurant: Restaurant, time: string) => Promise<void>;
+  toggleActivity: (activity: Activity) => void;
+  skipActivities: () => Promise<void>;
+  confirmItinerary: () => Promise<void>;
+  resetSession: () => void;
 
   // Itineraries
   itineraries: Itinerary[];
-  addFeedback: (itineraryId: string, rating: "great" | "meh" | "disaster", comment?: string) => void;
+  loadItineraries: () => Promise<void>;
+  addFeedback: (itineraryId: string, rating: "great" | "meh" | "disaster", comment?: string) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>()(
@@ -154,9 +38,11 @@ export const useAppStore = create<AppState>()(
       // Initial state
       profile: null,
       isOnboarded: false,
+      isLoading: false,
+      error: null,
       currentSession: null,
-      restaurants: mockRestaurants,
-      activities: mockActivities,
+      restaurants: [],
+      activities: [] as Activity[],
       itineraries: [],
 
       // Profile actions
@@ -176,25 +62,117 @@ export const useAppStore = create<AppState>()(
 
       completeOnboarding: () => set({ isOnboarded: true }),
 
-      // Planning actions
-      startPlanning: (prompt) => {
-        const session: PlanningSession = {
-          id: crypto.randomUUID(),
-          userPrompt: prompt,
-          parsedIntent: {},
-          stage: "loading",
-          selectedActivities: [],
-        };
-        set({ currentSession: session });
+      loadProfile: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          const { profile } = await api.getProfile();
+          if (profile) {
+            set({
+              profile: {
+                id: profile.id || profile.user_id,
+                location: profile.location || "",
+                budget: profile.budget || "$$",
+                dietary: profile.dietary || [],
+                vibeTags: profile.vibe_tags || [],
+              },
+              isOnboarded: !!profile.location,
+            });
+          }
+        } catch (error) {
+          console.error("Failed to load profile:", error);
+          set({ error: error instanceof Error ? error.message : "Failed to load profile" });
+        } finally {
+          set({ isLoading: false });
+        }
+      },
 
-        // Simulate AI processing
-        setTimeout(() => {
+      saveProfile: async (updates) => {
+        try {
+          set({ isLoading: true, error: null });
+          const currentProfile = get().profile;
+          const newProfile = {
+            location: updates.location ?? currentProfile?.location ?? "",
+            budget: updates.budget ?? currentProfile?.budget ?? "$$",
+            dietary: updates.dietary ?? currentProfile?.dietary ?? [],
+            vibe_tags: updates.vibeTags ?? currentProfile?.vibeTags ?? [],
+          };
+          
+          await api.updateProfile(newProfile);
+          
           set((state) => ({
-            currentSession: state.currentSession
-              ? { ...state.currentSession, stage: "restaurants" }
-              : null,
+            profile: state.profile
+              ? { ...state.profile, ...updates }
+              : {
+                  id: crypto.randomUUID(),
+                  location: newProfile.location,
+                  budget: newProfile.budget,
+                  dietary: newProfile.dietary,
+                  vibeTags: newProfile.vibe_tags,
+                },
           }));
-        }, 2000);
+        } catch (error) {
+          console.error("Failed to save profile:", error);
+          set({ error: error instanceof Error ? error.message : "Failed to save profile" });
+          throw error;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      // Planning actions
+      startPlanning: async (prompt) => {
+        try {
+          const profile = get().profile;
+          const session: PlanningSession = {
+            id: "",
+            userPrompt: prompt,
+            parsedIntent: {},
+            stage: "loading",
+            selectedActivities: [],
+          };
+          set({ currentSession: session, error: null });
+
+          const result = await api.startPlanningSession(prompt, {
+            location: profile?.location,
+            budget: profile?.budget,
+            dietary: profile?.dietary,
+            vibeTags: profile?.vibeTags,
+          });
+
+          const restaurants: Restaurant[] = (result.restaurants || []).map((r: any) => ({
+            id: r.id,
+            yelpId: r.yelp_id,
+            name: r.name,
+            photoUrl: r.photo_url || "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800",
+            rating: r.rating || 4.5,
+            price: r.price || "$$",
+            cuisine: r.cuisine || "Restaurant",
+            tags: r.tags || [],
+            whyThisWorks: r.why_this_works || "Great choice for your date!",
+            availableTimes: r.available_times || ["6:00 PM", "7:00 PM", "8:00 PM"],
+            address: r.address || "",
+            distance: r.distance || "",
+            latitude: r.latitude,
+            longitude: r.longitude,
+          }));
+
+          set({
+            currentSession: {
+              id: result.session_id,
+              userPrompt: prompt,
+              parsedIntent: result.parsed_intent || {},
+              stage: "restaurants",
+              selectedActivities: [],
+            },
+            restaurants,
+          });
+        } catch (error) {
+          console.error("Failed to start planning:", error);
+          set({ 
+            error: error instanceof Error ? error.message : "Failed to start planning",
+            currentSession: null 
+          });
+        }
       },
 
       setSessionStage: (stage) =>
@@ -204,17 +182,48 @@ export const useAppStore = create<AppState>()(
             : null,
         })),
 
-      selectRestaurant: (restaurant, time) => {
-        set((state) => ({
-          currentSession: state.currentSession
-            ? {
-                ...state.currentSession,
-                selectedRestaurant: restaurant,
-                selectedTime: time,
-                stage: "activities",
-              }
-            : null,
-        }));
+      selectRestaurant: async (restaurant, time) => {
+        try {
+          const session = get().currentSession;
+          if (!session?.id) return;
+
+          set((state) => ({
+            currentSession: state.currentSession
+              ? {
+                  ...state.currentSession,
+                  selectedRestaurant: restaurant,
+                  selectedTime: time,
+                  stage: "loading" as const,
+                }
+              : null,
+          }));
+
+          const result = await api.selectRestaurant(session.id, restaurant.id, time);
+
+          const activities: Activity[] = (result.activities || []).map((a: any) => ({
+            id: a.id,
+            yelpId: a.yelp_id,
+            name: a.name,
+            icon: a.icon || "📍",
+            photoUrl: a.photo_url || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800",
+            rating: a.rating || 4.5,
+            category: a.category || "Activity",
+            walkingMinutes: a.walking_minutes || 10,
+            whyThisWorks: a.why_this_works || "A great addition to your date!",
+            address: a.address || "",
+            timeWindow: a.time_window || "after",
+          }));
+
+          set((state) => ({
+            currentSession: state.currentSession
+              ? { ...state.currentSession, stage: "activities" }
+              : null,
+            activities,
+          }));
+        } catch (error) {
+          console.error("Failed to select restaurant:", error);
+          set({ error: error instanceof Error ? error.message : "Failed to select restaurant" });
+        }
       },
 
       toggleActivity: (activity) =>
@@ -232,91 +241,205 @@ export const useAppStore = create<AppState>()(
           };
         }),
 
-      skipActivities: () =>
-        set((state) => ({
-          currentSession: state.currentSession
-            ? { ...state.currentSession, selectedActivities: [], stage: "summary" }
-            : null,
-        })),
+      skipActivities: async () => {
+        const session = get().currentSession;
+        if (!session?.id) {
+          set((state) => ({
+            currentSession: state.currentSession
+              ? { ...state.currentSession, selectedActivities: [], stage: "summary" }
+              : null,
+          }));
+          return;
+        }
 
-      confirmItinerary: () => {
+        try {
+          await api.selectActivity(session.id, []);
+          set((state) => ({
+            currentSession: state.currentSession
+              ? { ...state.currentSession, selectedActivities: [], stage: "summary" }
+              : null,
+          }));
+        } catch (error) {
+          console.error("Failed to skip activities:", error);
+        }
+      },
+
+      confirmItinerary: async () => {
         const state = get();
         if (!state.currentSession?.selectedRestaurant) return;
 
-        const restaurant = state.currentSession.selectedRestaurant;
-        const activities = state.currentSession.selectedActivities;
-        const time = state.currentSession.selectedTime || "7:00 PM";
+        try {
+          const session = state.currentSession;
+          
+          // If we have a backend session, confirm via API
+          if (session.id) {
+            // First select activities if any
+            const activityIds = session.selectedActivities.map((a) => a.id);
+            if (activityIds.length > 0) {
+              await api.selectActivity(session.id, activityIds);
+            }
+            
+            const result = await api.confirmItinerary(session.id);
+            
+            if (result.itinerary) {
+              const itinerary: Itinerary = {
+                id: result.itinerary.id,
+                date: result.itinerary.date_label,
+                headline: result.itinerary.headline,
+                restaurant: session.selectedRestaurant,
+                activities: session.selectedActivities,
+                timelineBlocks: result.itinerary.timeline_blocks || [],
+                costEstimate: result.itinerary.cost_estimate || "$100-150",
+                status: "upcoming",
+              };
+              
+              set((state) => ({
+                itineraries: [itinerary, ...state.itineraries],
+                currentSession: { ...state.currentSession!, stage: "summary" },
+              }));
+            }
+          } else {
+            // Fallback for local-only session
+            const restaurant = session.selectedRestaurant;
+            const activities = session.selectedActivities;
+            const time = session.selectedTime || "7:00 PM";
 
-        const timelineBlocks: any[] = [];
+            const timelineBlocks: any[] = [];
 
-        // Add before activities
-        const beforeActivities = activities.filter((a) => a.timeWindow === "before");
-        beforeActivities.forEach((a) => {
-          timelineBlocks.push({
-            time: "5:30 PM",
-            icon: a.icon,
-            title: a.name,
-            subtitle: a.category,
-            hasLocation: true,
-          });
-        });
+            const beforeActivities = activities.filter((a) => a.timeWindow === "before");
+            beforeActivities.forEach((a) => {
+              timelineBlocks.push({
+                time: "5:30 PM",
+                icon: a.icon,
+                title: a.name,
+                subtitle: a.category,
+                hasLocation: true,
+              });
+            });
 
-        // Add dinner
-        timelineBlocks.push({
-          time,
-          icon: "🍽️",
-          title: restaurant.name,
-          subtitle: `${restaurant.cuisine} · ${restaurant.price}`,
-          extra: restaurant.address,
-          hasLocation: true,
-        });
+            timelineBlocks.push({
+              time,
+              icon: "🍽️",
+              title: restaurant.name,
+              subtitle: `${restaurant.cuisine} · ${restaurant.price}`,
+              extra: restaurant.address,
+              hasLocation: true,
+            });
 
-        // Add after activities
-        const afterActivities = activities.filter((a) => a.timeWindow === "after");
-        afterActivities.forEach((a) => {
-          timelineBlocks.push({
-            time: "9:30 PM",
-            icon: a.icon,
-            title: a.name,
-            subtitle: a.category,
-            hasLocation: true,
-          });
-        });
+            const afterActivities = activities.filter((a) => a.timeWindow === "after");
+            afterActivities.forEach((a) => {
+              timelineBlocks.push({
+                time: "9:30 PM",
+                icon: a.icon,
+                title: a.name,
+                subtitle: a.category,
+                hasLocation: true,
+              });
+            });
 
-        const itinerary: Itinerary = {
-          id: crypto.randomUUID(),
-          date: new Date().toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          }),
-          headline: `${restaurant.cuisine} Night`,
-          restaurant,
-          activities,
-          timelineBlocks,
-          costEstimate: activities.length > 0 ? "$150-200" : "$80-120",
-          status: "upcoming",
-        };
+            const itinerary: Itinerary = {
+              id: crypto.randomUUID(),
+              date: new Date().toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              }),
+              headline: `${restaurant.cuisine} Night`,
+              restaurant,
+              activities,
+              timelineBlocks,
+              costEstimate: activities.length > 0 ? "$150-200" : "$80-120",
+              status: "upcoming",
+            };
 
-        set((state) => ({
-          itineraries: [itinerary, ...state.itineraries],
-          currentSession: { ...state.currentSession!, stage: "summary" },
-        }));
+            set((state) => ({
+              itineraries: [itinerary, ...state.itineraries],
+              currentSession: { ...state.currentSession!, stage: "summary" },
+            }));
+          }
+        } catch (error) {
+          console.error("Failed to confirm itinerary:", error);
+          set({ error: error instanceof Error ? error.message : "Failed to confirm itinerary" });
+        }
       },
 
-      resetSession: () => set({ currentSession: null }),
+      resetSession: () => set({ currentSession: null, restaurants: [], activities: [] }),
 
-      addFeedback: (itineraryId, rating, comment) =>
-        set((state) => ({
-          itineraries: state.itineraries.map((it) =>
-            it.id === itineraryId
-              ? { ...it, feedback: { rating, comment }, status: "past" as const }
-              : it
-          ),
-        })),
+      loadItineraries: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          const { itineraries } = await api.getItineraries();
+          
+          const mapped: Itinerary[] = (itineraries || []).map((it: any) => ({
+            id: it.id,
+            date: it.date_label,
+            headline: it.headline,
+            restaurant: {
+              id: it.restaurant?.id || "",
+              name: it.restaurant?.name || "Restaurant",
+              photoUrl: it.restaurant?.photo_url || "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800",
+              rating: it.restaurant?.rating || 4.5,
+              price: it.restaurant?.price || "$$",
+              cuisine: it.restaurant?.cuisine || "Restaurant",
+              tags: it.restaurant?.tags || [],
+              whyThisWorks: it.restaurant?.why_this_works || "",
+              availableTimes: it.restaurant?.available_times || [],
+              address: it.restaurant?.address || "",
+              distance: it.restaurant?.distance || "",
+            },
+            activities: (it.activities || []).map((a: any) => ({
+              id: a.id || "",
+              name: a.name || "Activity",
+              icon: a.icon || "📍",
+              photoUrl: a.photo_url || "",
+              rating: a.rating || 4.5,
+              category: a.category || "Activity",
+              walkingMinutes: a.walking_minutes || 10,
+              whyThisWorks: a.why_this_works || "",
+              address: a.address || "",
+              timeWindow: a.time_window || "after",
+            })),
+            timelineBlocks: it.timeline_blocks || [],
+            costEstimate: it.cost_estimate || "$100-150",
+            status: it.status || "upcoming",
+            feedback: it.feedback_rating
+              ? { rating: it.feedback_rating, comment: it.feedback_comment }
+              : undefined,
+          }));
+
+          set({ itineraries: mapped });
+        } catch (error) {
+          console.error("Failed to load itineraries:", error);
+          set({ error: error instanceof Error ? error.message : "Failed to load itineraries" });
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      addFeedback: async (itineraryId, rating, comment) => {
+        try {
+          await api.submitFeedback(itineraryId, rating, comment);
+          
+          set((state) => ({
+            itineraries: state.itineraries.map((it) =>
+              it.id === itineraryId
+                ? { ...it, feedback: { rating, comment }, status: "past" as const }
+                : it
+            ),
+          }));
+        } catch (error) {
+          console.error("Failed to submit feedback:", error);
+          set({ error: error instanceof Error ? error.message : "Failed to submit feedback" });
+        }
+      },
     }),
     {
       name: "impress-my-date-storage",
+      partialize: (state) => ({
+        profile: state.profile,
+        isOnboarded: state.isOnboarded,
+        itineraries: state.itineraries,
+      }),
     }
   )
 );

@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, MapPin, Save, Check } from "lucide-react";
+import { User, MapPin, Save, Check, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/stores/appStore";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -15,12 +17,15 @@ const vibeOptions = ["Romantic", "Adventurous", "Low-key", "Foodie", "Trendy", "
 type BudgetType = typeof budgetOptions[number];
 
 export default function Profile() {
-  const { profile, setProfile } = useAppStore();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const { profile, saveProfile, isLoading } = useAppStore();
   const [location, setLocation] = useState(profile?.location || "");
-  const [budget, setBudget] = useState<BudgetType>(profile?.budget || "$$");
+  const [budget, setBudget] = useState<BudgetType>(profile?.budget as BudgetType || "$$");
   const [dietary, setDietary] = useState<string[]>(profile?.dietary || []);
   const [vibeTags, setVibeTags] = useState<string[]>(profile?.vibeTags || []);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const changed =
@@ -43,10 +48,22 @@ export default function Profile() {
     );
   };
 
-  const handleSave = () => {
-    setProfile({ location, budget, dietary, vibeTags });
-    toast.success("Profile updated!");
-    setHasChanges(false);
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await saveProfile({ location, budget, dietary, vibeTags });
+      toast.success("Profile updated!");
+      setHasChanges(false);
+    } catch (error) {
+      toast.error("Failed to save profile");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
   };
 
   return (
@@ -56,15 +73,20 @@ export default function Profile() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 mb-2"
+          className="flex items-center justify-between mb-2"
         >
-          <div className="w-12 h-12 rounded-xl bg-rose/10 flex items-center justify-center">
-            <User className="w-6 h-6 text-rose" />
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <User className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="font-display text-2xl font-bold">Profile</h1>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-display text-2xl font-bold">Profile</h1>
-            <p className="text-sm text-muted-foreground">Your preferences</p>
-          </div>
+          <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign out">
+            <LogOut className="w-5 h-5 text-muted-foreground" />
+          </Button>
         </motion.div>
       </div>
 
@@ -110,7 +132,7 @@ export default function Profile() {
                     className={cn(
                       "h-12 rounded-xl text-lg font-semibold transition-all duration-200",
                       budget === option
-                        ? "bg-rose text-white shadow-soft"
+                        ? "bg-primary text-primary-foreground shadow-soft"
                         : "bg-secondary hover:bg-secondary/80 text-secondary-foreground"
                     )}
                   >
@@ -141,7 +163,7 @@ export default function Profile() {
                     className={cn(
                       "px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2",
                       dietary.includes(option)
-                        ? "bg-rose text-white shadow-soft"
+                        ? "bg-primary text-primary-foreground shadow-soft"
                         : "bg-secondary hover:bg-secondary/80 text-secondary-foreground"
                     )}
                   >
@@ -173,7 +195,7 @@ export default function Profile() {
                     className={cn(
                       "px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2",
                       vibeTags.includes(option)
-                        ? "bg-rose text-white shadow-soft"
+                        ? "bg-primary text-primary-foreground shadow-soft"
                         : "bg-secondary hover:bg-secondary/80 text-secondary-foreground"
                     )}
                   >
@@ -185,6 +207,23 @@ export default function Profile() {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Sign Out Button */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Button 
+            variant="outline" 
+            size="lg" 
+            className="w-full" 
+            onClick={handleSignOut}
+          >
+            <LogOut className="w-5 h-5" />
+            Sign Out
+          </Button>
+        </motion.div>
       </div>
 
       {/* Save Button */}
@@ -194,9 +233,15 @@ export default function Profile() {
           animate={{ y: 0, opacity: 1 }}
           className="fixed bottom-20 left-0 right-0 p-6 bg-background/95 backdrop-blur-sm border-t border-border"
         >
-          <Button variant="romantic" size="lg" className="w-full" onClick={handleSave}>
+          <Button 
+            variant="romantic" 
+            size="lg" 
+            className="w-full" 
+            onClick={handleSave}
+            disabled={isSaving}
+          >
             <Save className="w-5 h-5" />
-            Save Changes
+            {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </motion.div>
       )}

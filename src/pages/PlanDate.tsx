@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Mic, Send, Sparkles, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/stores/appStore";
@@ -7,6 +7,7 @@ import RestaurantSuggestions from "@/components/planning/RestaurantSuggestions";
 import ActivitySuggestions from "@/components/planning/ActivitySuggestions";
 import ItinerarySummary from "@/components/planning/ItinerarySummary";
 import LoadingState from "@/components/planning/LoadingState";
+import { toast } from "sonner";
 
 const suggestions = [
   "Romantic Italian in Brooklyn",
@@ -16,17 +17,25 @@ const suggestions = [
 ];
 
 export default function PlanDate() {
-  const { currentSession, startPlanning, resetSession } = useAppStore();
+  const { currentSession, startPlanning, resetSession, error } = useAppStore();
   const [prompt, setPrompt] = useState("");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!prompt.trim()) return;
-    startPlanning(prompt);
-    setPrompt("");
+    try {
+      await startPlanning(prompt);
+      setPrompt("");
+    } catch (err) {
+      toast.error("Failed to start planning. Please try again.");
+    }
   };
 
-  const handleSuggestion = (suggestion: string) => {
-    startPlanning(suggestion);
+  const handleSuggestion = async (suggestion: string) => {
+    try {
+      await startPlanning(suggestion);
+    } catch (err) {
+      toast.error("Failed to start planning. Please try again.");
+    }
   };
 
   // Render based on session stage
@@ -84,7 +93,7 @@ export default function PlanDate() {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Friday night, want somewhere romantic in Brooklyn with Italian food..."
-            className="w-full h-32 p-4 pr-24 rounded-2xl bg-card border border-border shadow-card resize-none text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-rose/50"
+            className="w-full h-32 p-4 pr-24 rounded-2xl bg-card border border-border shadow-card resize-none text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -116,7 +125,7 @@ export default function PlanDate() {
         className="px-6"
       >
         <div className="flex items-center gap-2 mb-4">
-          <Sparkles className="w-4 h-4 text-gold" />
+          <Sparkles className="w-4 h-4 text-accent" />
           <span className="text-sm font-medium text-muted-foreground">Or try:</span>
         </div>
         <div className="flex flex-wrap gap-2">

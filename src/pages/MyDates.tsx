@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Plus, Eye, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,11 @@ import type { Itinerary } from "@/types";
 
 export default function MyDates() {
   const navigate = useNavigate();
-  const { itineraries } = useAppStore();
+  const { itineraries, loadItineraries, isLoading } = useAppStore();
+
+  useEffect(() => {
+    loadItineraries();
+  }, [loadItineraries]);
 
   const upcoming = itineraries.filter((it) => it.status === "upcoming");
   const past = itineraries.filter((it) => it.status === "past");
@@ -23,15 +28,24 @@ export default function MyDates() {
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-3 mb-2"
         >
-          <div className="w-12 h-12 rounded-xl bg-rose/10 flex items-center justify-center">
-            <Calendar className="w-6 h-6 text-rose" />
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Calendar className="w-6 h-6 text-primary" />
           </div>
           <h1 className="font-display text-2xl font-bold">My Dates</h1>
         </motion.div>
       </div>
 
       {/* Content */}
-      {itineraries.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          >
+            <Calendar className="w-8 h-8 text-primary" />
+          </motion.div>
+        </div>
+      ) : itineraries.length === 0 ? (
         <EmptyState onPlan={() => navigate("/plan")} />
       ) : (
         <div className="px-6 space-y-8">
@@ -93,8 +107,8 @@ function EmptyState({ onPlan }: { onPlan: () => void }) {
       animate={{ opacity: 1, y: 0 }}
       className="flex flex-col items-center justify-center px-6 py-16 text-center"
     >
-      <div className="w-20 h-20 rounded-3xl bg-rose/10 flex items-center justify-center mb-6">
-        <Calendar className="w-10 h-10 text-rose" />
+      <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6">
+        <Calendar className="w-10 h-10 text-primary" />
       </div>
       <h2 className="font-display text-xl font-semibold mb-2">No dates yet</h2>
       <p className="text-muted-foreground mb-6 max-w-xs">
