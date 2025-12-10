@@ -97,10 +97,8 @@ export default function RestaurantSuggestions() {
         </div>
       </div>
 
-      {/* Fixed Bottom: Multi-Turn Conversation Refiner */}
-      <div className="fixed bottom-0 left-0 right-0 z-50">
-        <ConversationRefiner />
-      </div>
+      {/* Multi-Turn Conversation Refiner - positioned at bottom */}
+      <ConversationRefiner />
 
       {/* Reservation Info Banner */}
       <AnimatePresence>

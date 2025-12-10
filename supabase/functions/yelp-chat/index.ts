@@ -101,15 +101,35 @@ serve(async (req) => {
 
     console.log('Yelp AI v2 Chat request:', JSON.stringify(yelpChatRequest));
 
-    const yelpResponse = await fetch('https://api.yelp.com/ai/chat/v2', {
-      method: 'POST',
-      headers: {
-        'accept': 'application/json',
-        'authorization': `Bearer ${YELP_API_TOKEN}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify(yelpChatRequest),
-    });
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+
+    let yelpResponse;
+    try {
+      yelpResponse = await fetch('https://api.yelp.com/ai/chat/v2', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'authorization': `Bearer ${YELP_API_TOKEN}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(yelpChatRequest),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      console.error('Yelp API fetch error:', fetchError);
+      return new Response(JSON.stringify({ 
+        error: 'Yelp API request failed or timed out',
+        ai_response: "I couldn't reach Yelp right now. Please try again.",
+        restaurants: []
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     if (!yelpResponse.ok) {
       const errorText = await yelpResponse.text();
