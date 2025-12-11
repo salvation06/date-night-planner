@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, Send, Loader2, MessageSquare, MapPin, Star, ExternalLink, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
-import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
-import { sendYelpChatMessage } from "@/lib/api";
+import { sendYelpChatMessage, textToSpeech } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +44,9 @@ export default function VoiceSearchInterface({
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Reset conversation on mount to ensure fresh results every time
   useEffect(() => {
@@ -53,6 +54,16 @@ export default function VoiceSearchInterface({
     setConversationId(undefined);
     setInputText("");
   }, [location]); // Reset when location changes too
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   const {
     isListening,
@@ -68,15 +79,49 @@ export default function VoiceSearchInterface({
     },
   });
 
-  const {
-    speak,
-    cancel: cancelSpeech,
-    isSpeaking,
-    isSupported: speechSynthesisSupported,
-  } = useSpeechSynthesis({
-    rate: 1,
-    pitch: 1,
-  });
+  // ElevenLabs TTS speak function
+  const speak = useCallback(async (text: string) => {
+    try {
+      setIsSpeaking(true);
+      const audioBase64 = await textToSpeech(text);
+      if (audioBase64) {
+        const audioBlob = new Blob(
+          [Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0))],
+          { type: 'audio/mpeg' }
+        );
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+        
+        audio.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+          audioRef.current = null;
+        };
+        
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+          audioRef.current = null;
+        };
+        
+        await audio.play();
+      } else {
+        setIsSpeaking(false);
+      }
+    } catch (error) {
+      console.error('TTS error:', error);
+      setIsSpeaking(false);
+    }
+  }, []);
+
+  const cancelSpeech = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setIsSpeaking(false);
+  }, []);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -121,8 +166,8 @@ export default function VoiceSearchInterface({
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Read response aloud if voice is enabled
-      if (voiceEnabled && speechSynthesisSupported) {
+      // Read response aloud if voice is enabled (using ElevenLabs)
+      if (voiceEnabled) {
         // Build speech text including restaurant names
         let speechText = aiResponse;
         if (response.restaurants?.length > 0) {
@@ -142,7 +187,7 @@ export default function VoiceSearchInterface({
       console.error("Chat error:", error);
       toast.error("Failed to get response. Please try again.");
       
-      if (voiceEnabled && speechSynthesisSupported) {
+      if (voiceEnabled) {
         speak("Sorry, I had trouble finding that. Please try again.");
       }
     } finally {
@@ -177,29 +222,27 @@ export default function VoiceSearchInterface({
           <MessageSquare className="w-4 h-4 text-primary" />
           <span className="text-sm font-medium">Yelp AI Chat</span>
         </div>
-        {speechSynthesisSupported && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleVoice}
-            className={cn(
-              "gap-2",
-              voiceEnabled ? "text-primary" : "text-muted-foreground"
-            )}
-          >
-            {voiceEnabled ? (
-              <>
-                <Volume2 className="w-4 h-4" />
-                <span className="text-xs">Voice On</span>
-              </>
-            ) : (
-              <>
-                <VolumeX className="w-4 h-4" />
-                <span className="text-xs">Voice Off</span>
-              </>
-            )}
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleVoice}
+          className={cn(
+            "gap-2",
+            voiceEnabled ? "text-primary" : "text-muted-foreground"
+          )}
+        >
+          {voiceEnabled ? (
+            <>
+              <Volume2 className="w-4 h-4" />
+              <span className="text-xs">Voice On</span>
+            </>
+          ) : (
+            <>
+              <VolumeX className="w-4 h-4" />
+              <span className="text-xs">Voice Off</span>
+            </>
+          )}
+        </Button>
       </div>
 
       {/* Voice Indicator */}
@@ -269,7 +312,7 @@ export default function VoiceSearchInterface({
             <p className="text-muted-foreground text-sm mb-2">
               Ask me anything about finding the perfect spot for your date!
             </p>
-            {voiceEnabled && speechSynthesisSupported && (
+            {voiceEnabled && (
               <p className="text-xs text-primary mb-6">
                 🔊 Voice responses are enabled
               </p>
