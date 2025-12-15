@@ -202,8 +202,9 @@ export default function Auth() {
             </h1>
 
             <p className="text-xl md:text-2xl text-white/80 mb-8 max-w-2xl mx-auto leading-relaxed">
-              Plan unforgettable dates with AI that understands romance, save your favorites as NFT's on Polkadot
-              Blockchain. Just tell us what you want, and we will curate the perfect evening.
+              Plan unforgettable dates with Yelp AI Conversational API that understands romance, save your favorite date
+              memories as NFT's on Polkadot Blockchain to cherish forever. Just tell us what you want, and we will
+              curate the perfect experience.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
