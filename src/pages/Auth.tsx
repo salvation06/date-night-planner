@@ -54,15 +54,18 @@ const yelpFeatures = [
   },
   {
     icon: MapPin,
-    title: "Direct Business Queries",
-    description: "Get instant answers about specific venues—hours, dress codes, ambiance, and real reviews.",
-    appFeature: "Find hidden gems with insider details from thousands of authentic reviews.",
+    title: "Direct Business Queries and NFT creation",
+    description:
+      "Get instant answers about specific venues—hours, dress codes, ambiance, and real reviews.  Show the world your romantic side and mint an NFT with your perfectly planned outing.",
+    appFeature:
+      "Find hidden gems with insider details from thousands of authentic reviews, create NFT on Polkadot blockchain from your date memories.",
     image: featureActivities,
   },
   {
     icon: Calendar,
     title: "Conversational Reservations",
-    description: "Book tables through natural conversation. Check availability and confirm in seconds.",
+    description:
+      "Book tables through natural conversation (where available). Check availability and confirm in seconds.",
     appFeature: "Reserve your perfect dinner spot without leaving the app.",
     image: featureMovies,
   },
