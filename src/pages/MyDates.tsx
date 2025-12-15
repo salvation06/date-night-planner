@@ -16,8 +16,20 @@ export default function MyDates() {
     loadItineraries();
   }, [loadItineraries]);
 
-  const upcoming = itineraries.filter((it) => it.status === "upcoming");
-  const past = itineraries.filter((it) => it.status === "past");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const upcoming = itineraries.filter((it) => {
+    if (!it.date) return true; // Default to upcoming if no date
+    const itineraryDate = new Date(it.date);
+    return itineraryDate >= today;
+  });
+  
+  const past = itineraries.filter((it) => {
+    if (!it.date) return false;
+    const itineraryDate = new Date(it.date);
+    return itineraryDate < today;
+  });
 
   return (
     <div className="min-h-screen gradient-warm pb-32">
