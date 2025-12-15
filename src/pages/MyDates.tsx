@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAppStore } from "@/stores/appStore";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { MintNFTButton } from "@/components/nft/MintNFTButton";
 import type { Itinerary } from "@/types";
 
 export default function MyDates() {
@@ -363,6 +364,11 @@ function DateCard({ itinerary, index, isPast }: DateCardProps) {
                   <ExternalLink className="w-3 h-3" />
                 </Button>
               )}
+            </div>
+            
+            {/* NFT Mint Button */}
+            <div className="pt-1">
+              <MintNFTButton itinerary={itinerary} />
             </div>
           </div>
         </CardContent>

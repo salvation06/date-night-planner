@@ -76,6 +76,59 @@ export type Database = {
           },
         ]
       }
+      date_memory_nfts: {
+        Row: {
+          collection_id: number | null
+          created_at: string
+          id: string
+          ipfs_cid: string
+          item_id: number | null
+          itinerary_id: string
+          status: string
+          subscan_url: string | null
+          transaction_hash: string | null
+          updated_at: string
+          user_id: string
+          wallet_address: string | null
+        }
+        Insert: {
+          collection_id?: number | null
+          created_at?: string
+          id?: string
+          ipfs_cid: string
+          item_id?: number | null
+          itinerary_id: string
+          status?: string
+          subscan_url?: string | null
+          transaction_hash?: string | null
+          updated_at?: string
+          user_id: string
+          wallet_address?: string | null
+        }
+        Update: {
+          collection_id?: number | null
+          created_at?: string
+          id?: string
+          ipfs_cid?: string
+          item_id?: number | null
+          itinerary_id?: string
+          status?: string
+          subscan_url?: string | null
+          transaction_hash?: string | null
+          updated_at?: string
+          user_id?: string
+          wallet_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "date_memory_nfts_itinerary_id_fkey"
+            columns: ["itinerary_id"]
+            isOneToOne: false
+            referencedRelation: "itineraries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       itineraries: {
         Row: {
           activities: Json | null

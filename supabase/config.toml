@@ -60,3 +60,12 @@ verify_jwt = true
 
 [functions.update-profile]
 verify_jwt = true
+
+[functions.pinata-upload]
+verify_jwt = true
+
+[functions.save-nft]
+verify_jwt = true
+
+[functions.get-nft]
+verify_jwt = true
