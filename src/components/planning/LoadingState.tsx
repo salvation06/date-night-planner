@@ -36,10 +36,21 @@ export default function LoadingState() {
         animate={{ opacity: 1, y: 0 }}
         className="font-display text-2xl font-semibold text-center mb-2"
       >
-        Finding places that will impress...
+        {currentSession?.selectedRestaurant 
+          ? "Finding activities nearby..."
+          : "Finding places that will impress..."}
       </motion.h2>
       
-      {currentSession?.userPrompt && (
+      {currentSession?.selectedRestaurant ? (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="text-muted-foreground text-center mb-8 max-w-sm"
+        >
+          Searching near <span className="font-medium text-foreground">{currentSession.selectedRestaurant.name}</span>
+        </motion.p>
+      ) : currentSession?.userPrompt && (
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
