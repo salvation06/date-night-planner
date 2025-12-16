@@ -34,6 +34,12 @@ export function MintNFTButton({ itinerary, existingNft, onMinted }: MintNFTButto
   const [error, setError] = useState<string | null>(null);
   const [mintedNft, setMintedNft] = useState<MintedDateMemory | null>(null);
 
+  const handleClick = () => {
+    setIsOpen(true);
+    // Start minting automatically when dialog opens
+    setTimeout(() => handleMint(), 100);
+  };
+
   const handleMint = async () => {
     setStep("connecting");
     setError(null);
@@ -135,7 +141,7 @@ export function MintNFTButton({ itinerary, existingNft, onMinted }: MintNFTButto
         variant="ghost"
         size="sm"
         className="h-6 text-[10px] text-gold hover:text-gold-dark gap-1"
-        onClick={() => setIsOpen(true)}
+        onClick={handleClick}
       >
         <Sparkles className="w-3 h-3" />
         Mint NFT
@@ -177,12 +183,9 @@ export function MintNFTButton({ itinerary, existingNft, onMinted }: MintNFTButto
                   className="text-center space-y-4"
                 >
                   <p className="text-sm text-muted-foreground">
-                    This will create a permanent on-chain record of your date memory. You'll need a Polkadot wallet extension (like Polkadot.js, SubWallet, or Talisman) to sign the transaction.
+                    Preparing to connect your Polkadot wallet (Polkadot.js, SubWallet, or Talisman)...
                   </p>
-                  <Button onClick={handleMint} className="w-full gap-2" variant="romantic">
-                    <Wallet className="w-4 h-4" />
-                    Connect Wallet & Mint
-                  </Button>
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-gold" />
                 </motion.div>
               )}
 
@@ -306,7 +309,7 @@ export function MintNFTButton({ itinerary, existingNft, onMinted }: MintNFTButto
                     <p className="text-xs text-muted-foreground mt-1">{error}</p>
                   </div>
                   <div className="flex gap-2 justify-center">
-                    <Button variant="outline" size="sm" onClick={() => setStep("idle")}>
+                    <Button variant="outline" size="sm" onClick={handleMint}>
                       Try Again
                     </Button>
                     <Button variant="ghost" size="sm" onClick={handleClose}>
