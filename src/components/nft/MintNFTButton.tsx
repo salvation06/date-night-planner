@@ -1,4 +1,4 @@
-import { useState, forwardRef } from "react";
+import { useState, forwardRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Loader2, ExternalLink, Check, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,14 @@ export const MintNFTButton = forwardRef<HTMLDivElement, MintNFTButtonProps>(
     const [error, setError] = useState<string | null>(null);
     const [mintedNft, setMintedNft] = useState<MintedDateMemory | null>(null);
 
+    // Debug: confirm component mounted
+    useEffect(() => {
+      console.log("🎯 MintNFTButton MOUNTED for itinerary:", itinerary.id, itinerary.headline);
+    }, [itinerary.id, itinerary.headline]);
+
     const handleClick = (e: React.MouseEvent) => {
+      console.log("🔥🔥🔥 BUTTON CLICKED! 🔥🔥🔥");
+      console.log("Event:", e.type, "Target:", e.target);
       e.preventDefault();
       e.stopPropagation();
       console.log("🔥 MintNFTButton clicked for itinerary:", itinerary.id);
