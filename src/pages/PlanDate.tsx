@@ -141,11 +141,52 @@ export default function PlanDate() {
         </motion.p>
       </div>
 
-      {/* Mode Switcher */}
+      {/* Shared Location & Date Inputs */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
+        className="px-6 mb-4 space-y-4"
+      >
+        <LocationPicker
+          value={userLocation}
+          onChange={setUserLocation}
+        />
+        
+        {/* Date Picker */}
+        <div className="flex items-center gap-3">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "flex-1 justify-start text-left font-normal",
+                  !selectedDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedDate ? format(selectedDate, "EEEE, MMMM d, yyyy") : "Pick a date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </motion.div>
+
+      {/* Mode Switcher */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
         className="px-6 mb-4"
       >
         <div className="flex rounded-xl bg-card border border-border p-1">
@@ -211,47 +252,6 @@ export default function PlanDate() {
                 </motion.div>
               )}
             </AnimatePresence>
-
-            {/* Location and Date Picker */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="px-6 mb-6 space-y-4"
-            >
-              <LocationPicker
-                value={userLocation}
-                onChange={setUserLocation}
-              />
-              
-              {/* Date Picker */}
-              <div className="flex items-center gap-3">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "flex-1 justify-start text-left font-normal",
-                        !selectedDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, "EEEE, MMMM d, yyyy") : "Pick a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </motion.div>
 
             {/* Input Area - only show after location is set */}
             {userLocation && (
@@ -346,13 +346,6 @@ export default function PlanDate() {
             exit={{ opacity: 0, x: 20 }}
             className="flex-1 flex flex-col min-h-0"
           >
-            {/* Location Picker for AI Chat */}
-            <div className="px-6 mb-4">
-              <LocationPicker
-                value={userLocation}
-                onChange={setUserLocation}
-              />
-            </div>
             <VoiceSearchInterface
               onSelectRestaurant={handleConversationRestaurantSelect}
               location={userLocation || profile?.location}
