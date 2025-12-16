@@ -24,9 +24,7 @@ interface MintNFTButtonProps {
   onMinted?: (nft: MintedDateMemory) => void;
 }
 
-type MintStep = "idle" | "connecting" | "uploading" | "minting" | "saving" | "success" | "error";
-
-const DEFAULT_COLLECTION_ID = 1;
+type MintStep = "idle" | "connecting" | "creating-collection" | "uploading" | "minting" | "saving" | "success" | "error";
 
 export const MintNFTButton = forwardRef<HTMLDivElement, MintNFTButtonProps>(
   function MintNFTButton({ itinerary, existingNft, onMinted }, ref) {
@@ -82,9 +80,17 @@ export const MintNFTButton = forwardRef<HTMLDivElement, MintNFTButtonProps>(
           costEstimate: itinerary.costEstimate,
         };
 
+        // Create a new collection for this mint
+        setStep("creating-collection");
+        const collection = await minter.createCollection(
+          `Date Memory - ${itinerary.headline}`,
+          `A memorable date: ${itinerary.headline} on ${itinerary.date}`
+        );
+        console.log("✅ Collection created:", collection.collectionId);
+
         setStep("minting");
 
-        const result = await minter.mintDateMemory(DEFAULT_COLLECTION_ID, dateMemory);
+        const result = await minter.mintDateMemory(collection.collectionId, dateMemory);
         setMintedNft(result);
 
         setStep("saving");
@@ -220,6 +226,22 @@ export const MintNFTButton = forwardRef<HTMLDivElement, MintNFTButtonProps>(
                     <p className="text-sm">Connecting to wallet...</p>
                     <p className="text-xs text-muted-foreground">
                       Please approve the connection in your wallet extension
+                    </p>
+                  </motion.div>
+                )}
+
+                {step === "creating-collection" && (
+                  <motion.div
+                    key="creating-collection"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="text-center space-y-3"
+                  >
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-gold" />
+                    <p className="text-sm">Creating NFT collection...</p>
+                    <p className="text-xs text-muted-foreground">
+                      Please approve the transaction in your wallet
                     </p>
                   </motion.div>
                 )}
