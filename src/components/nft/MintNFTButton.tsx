@@ -34,7 +34,9 @@ export function MintNFTButton({ itinerary, existingNft, onMinted }: MintNFTButto
   const [error, setError] = useState<string | null>(null);
   const [mintedNft, setMintedNft] = useState<MintedDateMemory | null>(null);
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click from firing
+    console.log("MintNFTButton clicked for itinerary:", itinerary.id);
     setIsOpen(true);
     // Reset to idle state when opening dialog
     setStep("idle");
