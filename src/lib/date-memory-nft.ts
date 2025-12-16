@@ -286,15 +286,42 @@ export class DateMemoryNFT {
     // Wait for collection
     await this.waitForCollection(collectionId);
 
-    // Get item ID
+    // Get collection details and determine next available item ID
     const collectionDetails = await this.api.query.nfts.collection(collectionId);
     if (!collectionDetails || collectionDetails.toString() === "") {
       throw new Error(`Collection ${collectionId} does not exist`);
     }
 
+    // Get current item count from collection to find next available ID
     const details = collectionDetails as unknown as { items?: { toString(): string } };
-    const itemId = Number(details.items?.toString() || "0");
-    console.log("\n   - Next Item ID:", itemId);
+    const currentItemCount = Number(details.items?.toString() || "0");
+    
+    // Find the next available item ID by checking existing items
+    let itemId = currentItemCount;
+    console.log("\n   - Current item count:", currentItemCount);
+    
+    // Double-check that this item ID doesn't exist (in case of gaps)
+    let itemExists = true;
+    let attempts = 0;
+    const maxAttempts = 100;
+    
+    while (itemExists && attempts < maxAttempts) {
+      const existingItem = await this.api.query.nfts.item(collectionId, itemId);
+      if (!existingItem || existingItem.toString() === "" || existingItem.toString() === "null") {
+        itemExists = false;
+        console.log(`   - Item ID ${itemId} is available`);
+      } else {
+        console.log(`   - Item ID ${itemId} already exists, trying next...`);
+        itemId++;
+        attempts++;
+      }
+    }
+    
+    if (attempts >= maxAttempts) {
+      throw new Error("Could not find available item ID after 100 attempts");
+    }
+    
+    console.log("   - Using Item ID:", itemId);
 
     // Upload metadata to IPFS via Pinata
     console.log("\n📤 Uploading date memory metadata to IPFS...");
@@ -303,9 +330,32 @@ export class DateMemoryNFT {
     console.log("   - CID:", metadataCid);
     console.log("   - IPFS Gateway:", `https://gateway.pinata.cloud/ipfs/${metadataCid}`);
 
-    // Mint NFT
+    // Get collection config to check mint settings
+    const collectionConfig = await this.api.query.nfts.collectionConfigOf(collectionId);
+    console.log("\n📋 Collection config:", collectionConfig?.toString() || "default");
+
+    // Build witness_data - for Issuer mint type with no price, we can use null
+    // But to be safe, we provide an empty witness config
+    const witnessData = {
+      ownedItem: null,
+      mintPrice: null,
+    };
+
+    // Mint NFT with proper witness_data
     console.log("\n🎨 Minting NFT on-chain...");
-    const mintTx = this.api.tx.nfts.mint(collectionId, itemId, this.account.address, null);
+    console.log("   - Collection ID:", collectionId);
+    console.log("   - Item ID:", itemId);
+    console.log("   - Mint to:", this.account.address);
+    
+    // Try minting with witness_data first, fall back to null if that fails
+    let mintTx;
+    try {
+      // For collections with mintType: Issuer and no price, witness_data can be null
+      mintTx = this.api.tx.nfts.mint(collectionId, itemId, this.account.address, witnessData);
+    } catch {
+      console.log("   - Using null witness_data");
+      mintTx = this.api.tx.nfts.mint(collectionId, itemId, this.account.address, null);
+    }
 
     const paymentInfo = await mintTx.paymentInfo(this.account.address);
     console.log("   - Estimated fee:", paymentInfo.partialFee.toHuman());
@@ -315,33 +365,49 @@ export class DateMemoryNFT {
     console.log("   🔔 CHECK YOUR WALLET");
 
     let mintTxHashResult: string | null = null;
+    let mintError: Error | null = null;
 
-    const mintUnsubscribe = await mintTx.signAndSend(
-      this.account.address,
-      { signer: injector.signer },
-      ({ status, txHash, dispatchError }) => {
-        if (!mintTxHashResult) {
-          mintTxHashResult = txHash.toHex();
-        }
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("Mint transaction timed out after 120 seconds"));
+      }, 120000);
 
-        if (status.isInBlock) {
-          if (dispatchError) {
-            console.error("   ❌ Mint failed!");
-            if (dispatchError.isModule) {
-              const decoded = this.api!.registry.findMetaError(dispatchError.asModule);
-              console.error(`   ${decoded.section}.${decoded.name}: ${decoded.docs.join(" ")}`);
-            }
-            return;
+      mintTx.signAndSend(
+        this.account!.address,
+        { signer: injector.signer },
+        ({ status, txHash, dispatchError }) => {
+          if (!mintTxHashResult) {
+            mintTxHashResult = txHash.toHex();
           }
-          console.log("   ✅ NFT minted in block:", status.asInBlock.toHex());
-        }
 
-        if (status.isFinalized) {
-          console.log("   🎉 Mint finalized!");
-          mintUnsubscribe();
-        }
-      },
-    );
+          if (status.isInBlock) {
+            clearTimeout(timeout);
+            if (dispatchError) {
+              console.error("   ❌ Mint failed!");
+              if (dispatchError.isModule) {
+                const decoded = this.api!.registry.findMetaError(dispatchError.asModule);
+                const errorMsg = `${decoded.section}.${decoded.name}: ${decoded.docs.join(" ")}`;
+                console.error(`   ${errorMsg}`);
+                mintError = new Error(errorMsg);
+              } else {
+                mintError = new Error(dispatchError.toString());
+              }
+              reject(mintError);
+              return;
+            }
+            console.log("   ✅ NFT minted in block:", status.asInBlock.toHex());
+            resolve();
+          }
+
+          if (status.isFinalized) {
+            console.log("   🎉 Mint finalized!");
+          }
+        },
+      ).catch((err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
+    });
 
     const mintTxHash = mintTxHashResult || "pending";
     const subscanUrl = `https://assethub-westend.subscan.io/account/${this.account.address}?tab=nft`;
