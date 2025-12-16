@@ -36,8 +36,9 @@ export function MintNFTButton({ itinerary, existingNft, onMinted }: MintNFTButto
 
   const handleClick = () => {
     setIsOpen(true);
-    // Start minting automatically when dialog opens
-    setTimeout(() => handleMint(), 100);
+    // Reset to idle state when opening dialog
+    setStep("idle");
+    setError(null);
   };
 
   const handleMint = async () => {
@@ -183,9 +184,12 @@ export function MintNFTButton({ itinerary, existingNft, onMinted }: MintNFTButto
                   className="text-center space-y-4"
                 >
                   <p className="text-sm text-muted-foreground">
-                    Preparing to connect your Polkadot wallet (Polkadot.js, SubWallet, or Talisman)...
+                    This will create a permanent on-chain record of your date memory. You'll need a Polkadot wallet extension (like Polkadot.js, SubWallet, or Talisman) to sign the transaction.
                   </p>
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-gold" />
+                  <Button onClick={handleMint} className="w-full gap-2" variant="romantic">
+                    <Wallet className="w-4 h-4" />
+                    Connect Wallet & Mint
+                  </Button>
                 </motion.div>
               )}
 
