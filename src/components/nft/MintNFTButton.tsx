@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Loader2, ExternalLink, Check, Wallet } from "lucide-react";
+import { Sparkles, Loader2, ExternalLink, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,10 +9,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DateMemoryNFT, type DateMemoryData, type MintedDateMemory } from "@/lib/date-memory-nft";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Itinerary } from "@/types";
+
+interface MintedNFTResult {
+  ipfsCid: string;
+  ipfsUrl: string;
+}
 
 interface MintNFTButtonProps {
   itinerary: Itinerary;
@@ -21,86 +25,108 @@ interface MintNFTButtonProps {
     subscan_url?: string;
     status: string;
   } | null;
-  onMinted?: (nft: MintedDateMemory) => void;
+  onMinted?: (nft: MintedNFTResult) => void;
 }
 
-type MintStep = "idle" | "connecting" | "uploading" | "minting" | "saving" | "success" | "error";
-
-const DEFAULT_COLLECTION_ID = 1; // Use a shared collection or create per-user
+type MintStep = "idle" | "uploading" | "saving" | "success" | "error";
 
 export function MintNFTButton({ itinerary, existingNft, onMinted }: MintNFTButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState<MintStep>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [mintedNft, setMintedNft] = useState<MintedDateMemory | null>(null);
+  const [mintedNft, setMintedNft] = useState<MintedNFTResult | null>(null);
 
   const handleMint = async () => {
-    setStep("connecting");
+    setStep("uploading");
     setError(null);
 
     try {
-      const minter = new DateMemoryNFT();
-      await minter.initialize();
-      
-      // Connect wallet
-      const account = await minter.connectWallet();
-      console.log("Connected wallet:", account.address);
+      console.log("🚀 Starting NFT mint for itinerary:", itinerary.id);
 
-      setStep("uploading");
-
-      // Prepare date memory data (without times)
-      const dateMemory: DateMemoryData = {
-        headline: itinerary.headline,
-        dateLabel: itinerary.date,
-        restaurant: {
-          name: itinerary.restaurant.name,
-          cuisine: itinerary.restaurant.cuisine,
-          price: itinerary.restaurant.price,
-          address: itinerary.restaurant.address,
+      // Prepare metadata for IPFS
+      const metadata = {
+        name: itinerary.headline,
+        description: `A memorable date: ${itinerary.headline} on ${itinerary.date}`,
+        external_url: "https://impressmydate.app",
+        attributes: [
+          { trait_type: "Date", value: itinerary.date },
+          { trait_type: "Restaurant", value: itinerary.restaurant.name },
+          { trait_type: "Cuisine", value: itinerary.restaurant.cuisine },
+          { trait_type: "Price Range", value: itinerary.restaurant.price },
+          { trait_type: "Activity Count", value: itinerary.activities.length },
+          { trait_type: "Cost Estimate", value: itinerary.costEstimate || "N/A" },
+          { trait_type: "Created", value: new Date().toISOString() },
+        ],
+        properties: {
+          restaurant: {
+            name: itinerary.restaurant.name,
+            cuisine: itinerary.restaurant.cuisine,
+            price: itinerary.restaurant.price,
+            address: itinerary.restaurant.address,
+          },
+          activities: itinerary.activities.map((a) => ({
+            name: a.name,
+            category: a.category,
+            address: a.address,
+          })),
         },
-        activities: itinerary.activities.map((a) => ({
-          name: a.name,
-          category: a.category,
-          address: a.address,
-        })),
-        costEstimate: itinerary.costEstimate,
       };
 
-      setStep("minting");
+      console.log("📤 Uploading metadata to IPFS via pinata-upload...");
+      
+      // Upload to IPFS via edge function
+      const { data: ipfsData, error: ipfsError } = await supabase.functions.invoke("pinata-upload", {
+        body: {
+          metadata,
+          name: `date-memory-${itinerary.date.replace(/\s+/g, "-").toLowerCase()}`,
+        },
+      });
 
-      // Mint the NFT
-      const result = await minter.mintDateMemory(DEFAULT_COLLECTION_ID, dateMemory);
-      setMintedNft(result);
+      if (ipfsError) {
+        console.error("IPFS upload error:", ipfsError);
+        throw new Error(`IPFS upload failed: ${ipfsError.message}`);
+      }
+
+      if (!ipfsData?.cid) {
+        console.error("IPFS response missing CID:", ipfsData);
+        throw new Error("IPFS upload failed: missing CID in response");
+      }
+
+      console.log("✅ Metadata uploaded to IPFS, CID:", ipfsData.cid);
 
       setStep("saving");
 
-      // Save to database
-      const { error: saveError } = await supabase.functions.invoke("save-nft", {
+      // Save NFT record to database
+      console.log("💾 Saving NFT record via save-nft...");
+      const { data: saveData, error: saveError } = await supabase.functions.invoke("save-nft", {
         body: {
           itinerary_id: itinerary.id,
-          ipfs_cid: result.metadataCid,
-          collection_id: result.collectionId,
-          item_id: result.itemId,
-          transaction_hash: result.transactionHash,
-          subscan_url: result.subscanUrl,
-          wallet_address: result.owner,
+          ipfs_cid: ipfsData.cid,
           status: "minted",
         },
       });
 
       if (saveError) {
-        console.error("Failed to save NFT record:", saveError);
-        // Don't fail - the NFT was still minted
+        console.error("Save NFT error:", saveError);
+        throw new Error(`Failed to save NFT record: ${saveError.message}`);
       }
 
+      console.log("✅ NFT record saved:", saveData);
+
+      const result: MintedNFTResult = {
+        ipfsCid: ipfsData.cid,
+        ipfsUrl: ipfsData.url || `https://gateway.pinata.cloud/ipfs/${ipfsData.cid}`,
+      };
+
+      setMintedNft(result);
       setStep("success");
-      toast.success("Date Memory NFT minted successfully!");
+      toast.success("Date Memory NFT created successfully!");
       onMinted?.(result);
     } catch (err) {
       console.error("Mint error:", err);
-      setError(err instanceof Error ? err.message : "Failed to mint NFT");
+      setError(err instanceof Error ? err.message : "Failed to create NFT");
       setStep("error");
-      toast.error("Failed to mint NFT");
+      toast.error("Failed to create NFT");
     }
   };
 
@@ -177,28 +203,12 @@ export function MintNFTButton({ itinerary, existingNft, onMinted }: MintNFTButto
                   className="text-center space-y-4"
                 >
                   <p className="text-sm text-muted-foreground">
-                    This will create a permanent on-chain record of your date memory.
+                    This will create a permanent record of your date memory stored on IPFS.
                   </p>
                   <Button onClick={handleMint} className="w-full gap-2" variant="romantic">
-                    <Wallet className="w-4 h-4" />
-                    Connect Wallet & Mint
+                    <Sparkles className="w-4 h-4" />
+                    Create Date Memory NFT
                   </Button>
-                </motion.div>
-              )}
-
-              {step === "connecting" && (
-                <motion.div
-                  key="connecting"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="text-center space-y-3"
-                >
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-gold" />
-                  <p className="text-sm">Connecting to wallet...</p>
-                  <p className="text-xs text-muted-foreground">
-                    Please approve the connection in your wallet extension
-                  </p>
                 </motion.div>
               )}
 
@@ -214,22 +224,6 @@ export function MintNFTButton({ itinerary, existingNft, onMinted }: MintNFTButto
                   <p className="text-sm">Uploading to IPFS...</p>
                   <p className="text-xs text-muted-foreground">
                     Storing your date memory metadata on decentralized storage
-                  </p>
-                </motion.div>
-              )}
-
-              {step === "minting" && (
-                <motion.div
-                  key="minting"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="text-center space-y-3"
-                >
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-gold" />
-                  <p className="text-sm">Minting NFT on blockchain...</p>
-                  <p className="text-xs text-muted-foreground">
-                    Please approve the transaction in your wallet
                   </p>
                 </motion.div>
               )}
@@ -259,31 +253,20 @@ export function MintNFTButton({ itinerary, existingNft, onMinted }: MintNFTButto
                     <Check className="w-6 h-6 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">NFT Minted Successfully!</p>
+                    <p className="text-sm font-semibold">Date Memory Created!</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Collection #{mintedNft.collectionId}, Item #{mintedNft.itemId}
+                      Your memory is now stored permanently on IPFS
                     </p>
                   </div>
-                  <div className="flex gap-2 justify-center">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1"
-                      onClick={() => window.open(`https://gateway.pinata.cloud/ipfs/${mintedNft.metadataCid}`, "_blank")}
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      View Metadata
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1"
-                      onClick={() => window.open(mintedNft.subscanUrl, "_blank")}
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      View on Subscan
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => window.open(mintedNft.ipfsUrl, "_blank")}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    View on IPFS
+                  </Button>
                   <Button variant="ghost" size="sm" onClick={handleClose}>
                     Close
                   </Button>
@@ -302,7 +285,7 @@ export function MintNFTButton({ itinerary, existingNft, onMinted }: MintNFTButto
                     <span className="text-xl">❌</span>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-red-600">Minting Failed</p>
+                    <p className="text-sm font-semibold text-red-600">Creation Failed</p>
                     <p className="text-xs text-muted-foreground mt-1">{error}</p>
                   </div>
                   <div className="flex gap-2 justify-center">
