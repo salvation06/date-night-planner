@@ -115,6 +115,11 @@ export const MintNFTButton = forwardRef<HTMLDivElement, MintNFTButtonProps>(
         setStep("success");
         toast.success("Date Memory NFT minted successfully!");
         onMinted?.(result);
+        
+        // Auto-close dialog after success
+        setTimeout(() => {
+          handleClose();
+        }, 2000);
       } catch (err) {
         console.error("❌ Mint error:", err);
         setError(err instanceof Error ? err.message : "Failed to mint NFT");
