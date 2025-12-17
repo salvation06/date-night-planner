@@ -1,73 +1,85 @@
-# Welcome to your Lovable project
+## Inspiration
 
-## Project info
+Planning a great date is stressful, with too many choices and not enough personalization. We wanted to make dating feel effortless, romantic, and memorable by combining AI, local restaurants, and digital keepsakes.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## What it does
 
-## How can I edit this code?
+**Impress My Date** uses GPS to auto-detect your location and starts a natural conversation (text or voice) to plan the perfect date by:
 
-There are several ways of editing your application.
+- Finding nearby spots using Yelp AI API (Search & Chat) 
+- Showing restaurant details with a direct Yelp page link, along with estimated costs  
+- Suggesting before-and-after date spots (coffee, walks, bars, desserts) with a time-based date schedule  
+- Respects dietary restrictions, budget, and date style (romantic, adventurous, casual, etc.)  
+- Saves your favorite date memories and mints them as NFTs 
 
-**Use Lovable**
+## How we built it
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+We built a conversational AI experience powered by **Yelp AI API (Search & Chat)**, GPS location services,  **Polkadot blockchain NFT's**, and **ElevenLabs AI text to speech** (example - https://vimeo.com/1147171771?share=copy&fl=sv&fe=ci). User preferences are stored in profiles, while memorable dates are minted as NFTs for permanent ownership.
 
-Changes made via Lovable will be committed automatically to this repo.
+## Challenges we ran into
 
-**Use your preferred IDE**
+- Balancing detailed planning without overwhelming the user  
+- Making the AI's conversations feel natural
+- Accurately estimating costs and timing across multiple venues  
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Accomplishments that we're proud of
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- A truly conversational, voice-enabled date planner  
+- End-to-end date experiences, not just restaurant suggestions  
+- Seamless integration of real-world moments with blockchain memories  
+- Personalized planning that adapts to the user's style, budget, and location  
 
-Follow these steps:
+## What we learned
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+There's inherent value to simplicity over endless options. Romance is about timing, flow, and context, not just the venue. After all, NFTs are most powerful when tied to our real emotional moments. 
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## What's next for Impress My Date
 
-# Step 3: Install the necessary dependencies.
-npm i
+The future we see for **Impress My Date** is: couple profiles and shared date histories, AI-generated date recaps, social sharing and collaborative planning in more cities with real-time availability. 
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+##Testing Instructions
 
-**Edit a file directly in GitHub**
+Important: To fully test the blockchain features, you’ll need a Polkadot wallet and test tokens.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+**Step 1: Wallet and Test Token Setup**
+-Install a Wallet
+-Install the Polkadot.js Extension (Chrome or Firefox), or choose another supported wallet from -polkadot.com.
+-Get Test Tokens
+-Request test tokens from the Polkadot Westend faucet to enable blockchain transactions.
 
-**Use GitHub Codespaces**
+**Step 2: Access the Application**
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- **URL:** https://impressmydate.vercel.app/
+- **Demo Account:**
+User: demo@impressmydate.com
+Password: demo123456
 
-## What technologies are used for this project?
+**Step 3: Plan an AI-Powered Date**
+- Log in and allow GPS location access (or enter a location manually).
+Start a conversation using text or voice.
+- Ask for ideas like:
+“Find romantic Italian restaurants nearby”
+“What about something more casual?”
+- Customize your date using profile preferences:
+Budget
+Dietary restrictions
+Date style (romantic, adventurous, casual)
 
-This project is built with:
+**Step 4: Review Your Date Plan**
+Once you’ve made your selections, you’ll see a complete date overview:
+- All chosen venues
+- Suggested timing for each stop
+- Estimated total cost
+- Direct links to Yelp pages
+Adjust anything you’d like until it feels perfect.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+**Step 5: Save Your Date**
+- Click Save Date to store your curated experience.
+- You can view and manage all saved dates anytime in the My Dates tab.
 
-## How can I deploy this project?
+**Step 6: Mint a Date Memory NFT**
+- Open a saved date from My Dates.
+- Click Mint Date NFT.
+- Connect your Polkadot wallet and approve the transaction.
+- Receive a transaction hash as proof of your minted memory on the blockchain.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
