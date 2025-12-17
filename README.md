@@ -1,3 +1,5 @@
+Impress My Date 
+
 ## Inspiration
 
 Planning a great date is stressful, with too many choices and not enough personalization. We wanted to make dating feel effortless, romantic, and memorable by combining AI, local restaurants, and digital keepsakes.
